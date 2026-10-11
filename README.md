@@ -1,86 +1,108 @@
+<h1 align="center">🌟 LilyGO T-HMI Multi-App OS 🌟</h1>
 
+<p align="center">
+  <b>A responsive multi-application touch operating system for the LilyGO T-HMI ESP32-S3</b><br>
+  Featuring Drawing Pad with IbisPaint HSV Color Picker, Breakout Arcade Game, System Monitor, and Sub-Pixel Anti-Aliased UI.
+</p>
 
+<p align="center">
+  <img src="./image/showcase.png" alt="T-HMI Multi-App Showcase" width="100%">
+</p>
 
-<h1 align = "center"> 🌟T-HMI🌟</h1>
+---
 
+## 📱 Feature Overview
 
-## Pinout
+### 1. 🎨 Drawing Pad (`AppDrawingPad`)
+- **Solid Crisp Strokes:** Pure, uniform color stroke rendering with zero opacity accumulation at overlapping points—intersections stay clean and vibrant.
+- **Smart Jitter Gating:** Sub-pixel jitter filter (< 1.5px) prevents point clumping and stutter when resting or drawing slowly.
+- **1-100px Brush Sizing:** Dynamic brush size modal with live anti-aliased preview circle, slider bar, and quick preset buttons (`2px`, `10px`, `25px`, `50px`, `100px`).
+- **IbisPaint-Style HSV Color Picker:**
+  - Real-time 360° Hue spectrum slider bar.
+  - 2D Saturation & Brightness gradient picker field with live crosshair.
+  - Quick-access palette pills and live hex/color preview box.
+- **PSRAM Persistent Canvas:** 150KB 16-bit RGB565 framebuffer stored in 8MB PSRAM, preserving your artwork when switching between apps or opening modals.
 
-![image](./image/T-HMI.jpg)
+### 2. 🕹️ Breakout Arcade Game (`AppGame`)
+- **60 FPS Differential Rendering:** Only paddle and ball bounding boxes are refreshed each frame, eliminating display tearing.
+- **Touch-Guided Paddle:** Smooth low-pass paddle tracking responsive to stylus or finger gestures.
+- **Arcade Physics:** Realistic brick collisions, variable deflection angles based on paddle impact location, score tracking, high score memory, and heart-based lives indicator.
 
+### 3. 📊 System Health & Sensor Monitor (`AppSystemMonitor`)
+- **SoC Health:** Real-time ESP32-S3 CPU frequency (240MHz), internal silicon die temperature sensor (°C / °F), system uptime, and Flash memory details.
+- **Memory Gauges:** Live visual SRAM heap usage bar and 8MB Octal PSRAM allocation.
+- **Power Rail & Battery:** LiPo battery voltage sensing via ADC divider (GPIO 5), USB 5V detection, and battery percentage display.
+- **Wi-Fi Scanner:** Asynchronous 2.4GHz network scan displaying SSID names and signal strength (RSSI dBm).
+- **Hardware Sensors:**
+  - **Magnetic Reed Switch (GPIO 21):** Real-time LED detection indicator for external magnetic fields.
+  - **BOOT Key (GPIO 0):** Hardware button state detection.
+  - **Touchscreen Diagnostics:** Raw 12-bit ADC coordinates (`rx, ry`) alongside mapped screen coordinates (`x, y`).
+  - **4-Point Calibration:** Interactive crosshair calibration saved directly to onboard NVS / LittleFS storage.
 
+### 4. ✨ Sub-Pixel Anti-Aliased UI (`UI_AA`)
+- Custom graphics engine providing smooth anti-aliased rounded rectangles, circular indicators, and outlines (`UI_AA::fillRoundRect`, `UI_AA::drawRoundRect`, `UI_AA::fillCircle`, `UI_AA::drawCircle`).
+- Pre-computed alpha blending (`tft.alphaBlend`) against known dark theme surfaces with zero parallel LCD bus read penalties.
 
-## Quick Start
+---
 
-The board uses USB as the JTAG upload port. When printing serial port information on USB, CDC_ON_BOOT configuration needs to be turned on. 
-If the port cannot be found when uploading the program or the USB has been used for other functions, the port does not appear. 
-Please enter the upload mode manually. 
--  Press and hold the BOOT button when the power is off, the button is located behind the RST button.
--  When the USB is connected, first press and hold the BOOT button, then click reset and then release the BOOT button
+## 🖼️ Application Gallery
 
-### Arduino
+| 1. App Launcher | 2. Drawing Pad (Solid Strokes) | 3. IbisPaint Color Picker |
+|:---:|:---:|:---:|
+| <img src="./image/screen_launcher.png" width="230"/> | <img src="./image/screen_drawpad.png" width="230"/> | <img src="./image/screen_colorpicker.png" width="230"/> |
+| *Card launcher with theme badges* | *Solid brush with persistent PSRAM canvas* | *HSV hue slider & Sat/Val square* |
 
-* [Record Video](https://youtu.be/4tYiujotmKI)
+| 4. Breakout Arcade Game | 5. System Monitor (SoC) | 6. Sensors & Calibration |
+|:---:|:---:|:---:|
+| <img src="./image/screen_breakout.png" width="230"/> | <img src="./image/screen_sysmonitor.png" width="230"/> | <img src="./image/screen_sensors.png" width="230"/> |
+| *60 FPS touch paddle & brick physics* | *Dual-core stats, temp & memory bars* | *Magnetic reed switch & touch calibration* |
 
-1. In Arduino Preferences, on the Settings tab, enter the `https://espressif.github.io/arduino-esp32/package_esp32_index.json` URL in the `Additional boards manager URLs` input box. 
-2. Click OK and the software will install. 
-3. Search for ESP32 in Tools → Board Manager and install ESP32-Arduino SDK (V 2.0.5 or above and below V3.0)
-![](image/Arduino_board.png)
-4. Copy everything from this repository lib folder to [Arduino library folder](https://docs.arduino.cc/software/ide-v1/tutorials/installing-libraries#manual-installation) (e.g. `C:\Users\YourName\Documents\Arduino\libraries`)
-5. Select the correct settings in the Tools menu as shown below.
+---
 
-| Setting                  | Value                            |
-| :----------------------- | :------------------------------- |
-| Board                    | ESP32 S3 Dev Module              |
-| USB CDC On Boot          | Enabled                          |
-| CPU Frequency            | 240MHz (WiFi)                    |
-| Core Debug Level         | None                             |
-| USB DFU On Boot          | Enabled                          |
-| Events Run On            | Core 1                           |
-| Flash Mode               | QIO 80MHz                        |
-| Flash Size               | 16MB (128Mb)                     |
-| JTAG Adapter             | Integrated USB JTAG              |
-| Arduino Runs On          | Core 1                           |
-| USB Firmware MSC On Boot | Disabled                         |
-| Partition Scheme         | Huge APP (3MB No OTA/1MB SPIFFS) |
-| PSRAM                    | OPI PSRAM                        |
-| USB Mode                 | Hardware CDC and JTAG            |
+## 🛠️ Hardware Specifications
 
-##### Writing as a beginner: 
+- **MCU:** Espressif ESP32-S3 dual-core Tensilica Xtensa LX7 @ 240MHz
+- **Display:** 2.8-inch ST7789 LCD (240 × 320 portrait, 8-bit 8080 parallel bus)
+- **Touchscreen:** XPT2046 resistive touch controller (SPI)
+- **Storage & Memory:** 16MB QIO Flash, 8MB Octal PSRAM, 320KB internal SRAM
+- **Connectivity:** 2.4GHz 802.11 b/g/n Wi-Fi & Bluetooth 5 (LE)
+- **Peripherals:** Built-in magnetic reed switch (GPIO 21), hardware BOOT button (GPIO 0), battery ADC voltage divider (GPIO 5), USB-C native CDC.
 
-- When opening the Arduino IDE, you will be prompted that there are new libraries that can be updated. Please do not click update. There is no guarantee that it can be compiled, run, etc. after the update. Make sure that the board is running normally before deciding whether to update. You have to Know that problems may occur after updating due to library differences, or the default configuration (such as TFT_eSPI) will be overwritten.
-- If it runs abnormally after the update, please follow Article 4 of the Arduino Quick Start to delete the directory in libraries, and drag the folder in lib into the libraries directory again.
+---
 
-### PlatformIO
+## 🚀 Quick Start (PlatformIO)
 
-1. PlatformIO plug-in installation: click on the extension on the left column → search platformIO → install the first plug-in
-2. Click Platforms → Embedded → search Espressif 32 in the input box → select the corresponding firmware installation
+### 1. Clone Repository
+```bash
+git clone git@github.com:YoletG/T-HMI-MultiApp.git
+cd T-HMI-MultiApp
+```
 
-## Tips
+### 2. Compile Firmware
+```bash
+pio run
+```
 
-1. The board uses USB as the JTAG upload port. When printing serial port information on USB_CDC_ON_BOOT configuration needs to be turned on.
-If the port cannot be found when uploading the program or the USB has been used for other functions, the port does not appear.
-Please enter the upload mode manually.
-   1. Connect the board via the USB cable
-   2. Press and hold the BOOT button , While still pressing the BOOT button, press RST
-   3. Release the RST
-   4. Release the BOOT button
-   5. Upload sketch
-2. If the above is invalid, burn the [firmware](./firmware/README.MD)  to check whether the hardware is normal
-3. Powering up the T-HMI board via the 5V DC connector does not work
-   - Looking at the [schematic](./schematic/Schematic.pdf), we know that if you use an external 5V power supply, you need to bring a magnet close to the ReedSwitch and set the PowerOn Pin (GPIO14) to HIGH as soon as the chip starts.
-   ```c
-    pinMode(14, OUTPUT);
-    digitalWrite(14, HIGH);
-    ```
-4. It can start normally when using USB power supply, but it cannot start when connected to the battery alone?
-   - When using the battery alone, IO10 needs to be set to HIGH to work properly.
-    ```c
-    pinMode(10, OUTPUT);
-    digitalWrite(10, HIGH);
-    ```
-5. How to turn the machine on and off with a switch and how many ways are there? See [here](https://github.com/Xinyuan-LilyGO/T-HMI/tree/master/examples/power_on)
+### 3. Flash to Board
+1. Connect the LilyGO T-HMI via USB-C.
+2. Hold down the **BOOT** button (Button 1 / GPIO 0) and tap **RST** once, then release **BOOT** to enter ROM bootloader.
+3. Flash the firmware:
+```bash
+pio run -t upload
+```
 
-## Dimension
+---
 
-![](./3D/HMI.png)
+## 📌 Board Pinout & Schematic
+
+![Pinout](./image/T-HMI.jpg)
+
+### Power & Hardware Tips
+1. **USB-CDC Serial:** Native USB is used for upload and serial monitoring (`ARDUINO_USB_CDC_ON_BOOT=1`).
+2. **External 5V Power:** When using external 5V without USB, set GPIO 14 (`PowerOn Pin`) to `HIGH` upon chip startup.
+3. **Battery Power Mode:** When running on LiPo battery power, GPIO 10 must be held `HIGH`.
+
+---
+
+## 📜 License
+This project is open-source under the Apache 2.0 / MIT License.
