@@ -2,6 +2,7 @@
 #include "App.h"
 #include "pins.h"
 #include "data.h"
+#include "UI_AA.h"
 #include <WiFi.h>
 
 class AppSystemMonitor : public App {
@@ -45,10 +46,10 @@ private:
     }
 
     void drawCardOutline(TFT_eSPI& tft, int x, int y, int w, int h, const char* title, uint16_t headerColor = 0x2145) {
-        tft.fillRoundRect(x, y, w, h, 4, 0x1082);
-        tft.drawRoundRect(x, y, w, h, 4, 0x39E7);
-        tft.fillRoundRect(x, y, w, 18, 4, headerColor);
-        tft.drawRoundRect(x, y, w, 18, 4, 0x39E7);
+        UI_AA::fillRoundRect(tft, x, y, w, h, 6, 0x1082, TFT_BLACK);
+        UI_AA::drawRoundRect(tft, x, y, w, h, 6, 0x39E7, TFT_BLACK);
+        UI_AA::fillRoundRect(tft, x, y, w, 18, 4, headerColor, 0x1082);
+        UI_AA::drawRoundRect(tft, x, y, w, 18, 4, 0x39E7, 0x1082);
         tft.setTextColor(TFT_WHITE, headerColor);
         tft.setTextDatum(TL_DATUM);
         tft.drawString(title, x + 6, y + 3, 2);
@@ -115,25 +116,25 @@ private:
         tft.fillRect(0, 52, 240, 268, TFT_BLACK);
 
         drawCardOutline(tft, 6, 56, 228, 140, "Battery & Power Rail", 0x03E0);
-        tft.drawRoundRect(14, 130, 180, 24, 4, TFT_WHITE);
-        tft.fillRoundRect(195, 136, 6, 12, 2, TFT_WHITE);
+        UI_AA::drawRoundRect(tft, 14, 130, 180, 24, 4, TFT_WHITE, 0x1082);
+        UI_AA::fillRoundRect(tft, 195, 136, 6, 12, 2, TFT_WHITE, 0x1082);
 
         drawCardOutline(tft, 6, 204, 228, 106, "Backlight Display", 0x3186);
         tft.setTextColor(0xCE59, 0x1082);
         tft.drawString("Brightness Stepping (GPIO 38):", 14, 228, 2);
 
-        tft.fillRoundRect(14, 252, 60, 32, 4, 0x2165);
-        tft.drawRoundRect(14, 252, 60, 32, 4, TFT_WHITE);
+        UI_AA::fillRoundRect(tft, 14, 252, 60, 32, 5, 0x2165, 0x1082);
+        UI_AA::drawRoundRect(tft, 14, 252, 60, 32, 5, TFT_WHITE, 0x1082);
         tft.setTextDatum(MC_DATUM);
         tft.setTextColor(TFT_WHITE, 0x2165);
         tft.drawString("Low", 44, 268, 2);
 
-        tft.fillRoundRect(86, 252, 60, 32, 4, 0x2165);
-        tft.drawRoundRect(86, 252, 60, 32, 4, TFT_WHITE);
+        UI_AA::fillRoundRect(tft, 86, 252, 60, 32, 5, 0x2165, 0x1082);
+        UI_AA::drawRoundRect(tft, 86, 252, 60, 32, 5, TFT_WHITE, 0x1082);
         tft.drawString("Med", 116, 268, 2);
 
-        tft.fillRoundRect(158, 252, 60, 32, 4, 0x0410);
-        tft.drawRoundRect(158, 252, 60, 32, 4, TFT_CYAN);
+        UI_AA::fillRoundRect(tft, 158, 252, 60, 32, 5, 0x0410, 0x1082);
+        UI_AA::drawRoundRect(tft, 158, 252, 60, 32, 5, TFT_CYAN, 0x1082);
         tft.setTextColor(TFT_CYAN, 0x0410);
         tft.drawString("Max", 188, 268, 2);
 
@@ -186,8 +187,8 @@ private:
     }
 
     void drawWifiList(TFT_eSPI& tft) {
-        tft.fillRoundRect(16, 58, 208, 32, 5, wifiScanning ? 0x6280 : 0x037A);
-        tft.drawRoundRect(16, 58, 208, 32, 5, TFT_WHITE);
+        UI_AA::fillRoundRect(tft, 16, 58, 208, 32, 5, wifiScanning ? 0x6280 : 0x037A, TFT_BLACK);
+        UI_AA::drawRoundRect(tft, 16, 58, 208, 32, 5, TFT_WHITE, TFT_BLACK);
         tft.setTextDatum(MC_DATUM);
         tft.setTextColor(TFT_WHITE, wifiScanning ? 0x6280 : 0x037A);
         tft.drawString(wifiScanning ? "SCANNING 2.4GHz..." : "SCAN WI-FI NETWORKS", 120, 74, 2);
@@ -207,8 +208,8 @@ private:
             int maxItems = min(wifiCount, 7);
             for (int i = 0; i < maxItems; i++) {
                 int y = 118 + i * 26;
-                tft.fillRoundRect(6, y, 228, 23, 3, 0x1082);
-                tft.drawRoundRect(6, y, 228, 23, 3, 0x2965);
+                UI_AA::fillRoundRect(tft, 6, y, 228, 23, 4, 0x1082, TFT_BLACK);
+                UI_AA::drawRoundRect(tft, 6, y, 228, 23, 4, 0x2965, TFT_BLACK);
 
                 String ssid = WiFi.SSID(i);
                 if (ssid.length() == 0) ssid = "<Hidden>";
@@ -248,8 +249,8 @@ private:
         drawCardOutline(tft, 6, 206, 228, 106, "Touchscreen & Calibration", 0x2124);
 
         // Calibrate Button
-        tft.fillRoundRect(14, 276, 212, 28, 4, 0x9800);
-        tft.drawRoundRect(14, 276, 212, 28, 4, TFT_YELLOW);
+        UI_AA::fillRoundRect(tft, 14, 276, 212, 28, 5, 0x9800, 0x1082);
+        UI_AA::drawRoundRect(tft, 14, 276, 212, 28, 5, TFT_YELLOW, 0x1082);
         tft.setTextDatum(MC_DATUM);
         tft.setTextColor(TFT_WHITE, 0x9800);
         tft.drawString("START TOUCH CALIBRATION", 120, 290, 2);
@@ -260,12 +261,12 @@ private:
     void updateSensorsDynamic(TFT_eSPI& tft, const TouchPoint& touch) {
         bool reedClosed = (digitalRead(BUTTON2_PIN) == LOW);
         if (reedClosed) {
-            tft.fillCircle(24, 110, 6, TFT_GREEN);
+            UI_AA::fillCircle(tft, 24, 110, 6, TFT_GREEN, 0x1082);
             tft.setTextColor(TFT_GREEN, 0x1082);
             tft.setTextDatum(TL_DATUM);
             tft.drawString("MAGNET DETECTED / CLOSED   ", 36, 103, 2);
         } else {
-            tft.fillCircle(24, 110, 6, 0x52AA);
+            UI_AA::fillCircle(tft, 24, 110, 6, 0x52AA, 0x1082);
             tft.setTextColor(0x94B2, 0x1082);
             tft.setTextDatum(TL_DATUM);
             tft.drawString("No Magnetic Field (Open)   ", 36, 103, 2);
@@ -273,11 +274,11 @@ private:
 
         bool btnBoot = (digitalRead(BUTTON1_PIN) == LOW);
         if (btnBoot) {
-            tft.fillCircle(24, 180, 6, TFT_YELLOW);
+            UI_AA::fillCircle(tft, 24, 180, 6, TFT_YELLOW, 0x1082);
             tft.setTextColor(TFT_YELLOW, 0x1082);
             tft.drawString("BOOT KEY PRESSED   ", 36, 173, 2);
         } else {
-            tft.fillCircle(24, 180, 6, 0x52AA);
+            UI_AA::fillCircle(tft, 24, 180, 6, 0x52AA, 0x1082);
             tft.setTextColor(0x94B2, 0x1082);
             tft.drawString("Key Released       ", 36, 173, 2);
         }

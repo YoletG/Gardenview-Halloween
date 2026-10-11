@@ -1,5 +1,6 @@
 #pragma once
 #include "App.h"
+#include "UI_AA.h"
 #include <esp_heap_caps.h>
 #include <math.h>
 
@@ -29,7 +30,7 @@ private:
     uint8_t currentSat = 255;      // 0..255
     uint8_t currentVal = 255;      // 0..255
 
-    // In-memory 16-bit framebuffer in 8MB PSRAM for sub-pixel anti-aliased blending & persistence
+    // In-memory 16-bit framebuffer in 8MB PSRAM for canvas persistence across apps & modals
     uint16_t* canvasBuf = nullptr;
     bool hasDrawnBefore = false;
 
@@ -57,160 +58,140 @@ private:
     }
 
     // =========================================================================
-    // ANTI-ALIASED CIRCLE STAMP WITH PSRAM COLOR BLENDING
+    // SOLID CANVAS DRAWING (CRISP INTERSECTIONS & SMART CLOSE-POINT REDRAW)
     // =========================================================================
-    void drawSmoothStamp(TFT_eSPI& tft, float cx, float cy, float radius, uint16_t color) {
-        if (radius <= 0.75f) {
-            int ix = (int)(cx + 0.5f);
-            int iy = (int)(cy + 0.5f);
-            if (ix >= CANVAS_LEFT && ix <= CANVAS_RIGHT && iy >= CANVAS_TOP && iy <= CANVAS_BOTTOM) {
-                if (canvasBuf) canvasBuf[iy * 240 + ix] = color;
-                tft.drawPixel(ix, iy, color);
+    void drawSolidCircle(TFT_eSPI& tft, int cx, int cy, int radius, uint16_t color) {
+        if (radius <= 1) {
+            if (cx >= CANVAS_LEFT && cx <= CANVAS_RIGHT && cy >= CANVAS_TOP && cy <= CANVAS_BOTTOM) {
+                if (canvasBuf) canvasBuf[cy * 240 + cx] = color;
+                tft.drawPixel(cx, cy, color);
             }
             return;
         }
 
-        // Sub-pixel anti-aliasing feather: 0.75 pixel transition ring
-        float rInner = max(0.0f, radius - 0.75f);
-        float rOuter = radius + 0.75f;
-        float rInnerSq = rInner * rInner;
-        float rOuterSq = rOuter * rOuter;
-        float rFringeSpan = rOuter - rInner;
-
-        int minPy = max((int)CANVAS_TOP, (int)floorf(cy - rOuter));
-        int maxPy = min((int)CANVAS_BOTTOM, (int)ceilf(cy + rOuter));
+        int minPy = max((int)CANVAS_TOP, cy - radius);
+        int maxPy = min((int)CANVAS_BOTTOM, cy + radius);
+        int rSq = radius * radius;
 
         for (int py = minPy; py <= maxPy; py++) {
-            float dy = (float)py - cy;
-            float dySq = dy * dy;
-            if (dySq >= rOuterSq) continue;
-
-            float dxMax = sqrtf(rOuterSq - dySq);
-            int minPx = max((int)CANVAS_LEFT, (int)floorf(cx - dxMax));
-            int maxPx = min((int)CANVAS_RIGHT, (int)ceilf(cx + dxMax));
-
-            int coreMinX = 999;
-            int coreMaxX = -999;
-            if (dySq < rInnerSq) {
-                float dxCore = sqrtf(rInnerSq - dySq);
-                coreMinX = max((int)CANVAS_LEFT, (int)ceilf(cx - dxCore));
-                coreMaxX = min((int)CANVAS_RIGHT, (int)floorf(cx + dxCore));
-            }
-
-            for (int px = minPx; px <= maxPx; px++) {
-                if (px >= coreMinX && px <= coreMaxX) {
-                    // Fast solid core span
-                    int spanLen = coreMaxX - px + 1;
-                    if (canvasBuf) {
-                        uint16_t* rowPtr = &canvasBuf[py * 240 + px];
-                        for (int k = 0; k < spanLen; k++) rowPtr[k] = color;
-                    }
-                    tft.drawFastHLine(px, py, spanLen, color);
-                    px = coreMaxX; // Advance to end of core
-                } else {
-                    // Anti-aliased outer edge pixel
-                    float dx = (float)px - cx;
-                    float d = sqrtf(dx * dx + dySq);
-                    if (d < rOuter) {
-                        uint8_t alpha = 255;
-                        if (d > rInner) {
-                            alpha = (uint8_t)constrain(255.0f * (rOuter - d) / rFringeSpan, 0.0f, 255.0f);
-                        }
-                        if (alpha > 0) {
-                            uint16_t bg = canvasBuf ? canvasBuf[py * 240 + px] : TFT_BLACK;
-                            uint16_t blended = (alpha >= 254) ? color : tft.alphaBlend(alpha, color, bg);
-                            if (canvasBuf) canvasBuf[py * 240 + px] = blended;
-                            tft.drawPixel(px, py, blended);
-                        }
-                    }
+            int dy = py - cy;
+            int dxMax = (int)sqrtf((float)(rSq - dy * dy));
+            int x1 = max((int)CANVAS_LEFT, cx - dxMax);
+            int x2 = min((int)CANVAS_RIGHT, cx + dxMax);
+            if (x2 >= x1) {
+                int len = x2 - x1 + 1;
+                if (canvasBuf) {
+                    uint16_t* rowPtr = &canvasBuf[py * 240 + x1];
+                    for (int k = 0; k < len; k++) rowPtr[k] = color;
                 }
+                tft.drawFastHLine(x1, py, len, color);
             }
         }
     }
 
-    // =========================================================================
-    // DENSE CONTINUOUS ANTI-ALIASED STROKE INTERPOLATION
-    // =========================================================================
-    void drawSmoothStroke(TFT_eSPI& tft, float x0, float y0, float x1, float y1, float radius, uint16_t color) {
-        float dx = x1 - x0;
-        float dy = y1 - y0;
-        float dist = sqrtf(dx * dx + dy * dy);
+    void drawStrokeSegment(TFT_eSPI& tft, int x0, int y0, int x1, int y1, int radius, uint16_t color) {
+        int dx = x1 - x0;
+        int dy = y1 - y0;
+        float dist = sqrtf((float)(dx * dx + dy * dy));
 
-        if (dist < 0.5f) {
-            drawSmoothStamp(tft, x1, y1, radius, color);
+        if (dist < 1.0f) {
+            drawSolidCircle(tft, x1, y1, radius, color);
             return;
         }
 
-        // Spacing between stamps: radius * 0.35 ensures velvety smooth edges with no scalloping
-        float stepDist = max(1.0f, radius * 0.35f);
-        int steps = (int)ceilf(dist / stepDist);
+        if (radius <= 1) {
+            int steps = (int)ceilf(dist);
+            for (int s = 0; s <= steps; s++) {
+                int px = x0 + (dx * s) / steps;
+                int py = y0 + (dy * s) / steps;
+                if (px >= CANVAS_LEFT && px <= CANVAS_RIGHT && py >= CANVAS_TOP && py <= CANVAS_BOTTOM) {
+                    if (canvasBuf) canvasBuf[py * 240 + px] = color;
+                    tft.drawPixel(px, py, color);
+                }
+            }
+            return;
+        }
+
+        // Thick brush: interpolate solid circles with step size = max(1, radius / 2)
+        // Ensures continuous solid line without gaps, and perfectly clean stroke intersections
+        float stepSize = max(1.0f, (float)radius * 0.5f);
+        int steps = (int)ceilf(dist / stepSize);
 
         for (int s = 0; s <= steps; s++) {
             float t = (float)s / (float)steps;
-            float x = x0 + dx * t;
-            float y = y0 + dy * t;
-            drawSmoothStamp(tft, x, y, radius, color);
+            int px = (int)(x0 + dx * t + 0.5f);
+            int py = (int)(y0 + dy * t + 0.5f);
+            drawSolidCircle(tft, px, py, radius, color);
         }
     }
 
+    // =========================================================================
+    // ANTI-ALIASED UI TOOLBAR (Background: 0x18E3)
+    // =========================================================================
     void drawToolbar(TFT_eSPI& tft) {
-        tft.fillRect(0, 26, 240, 28, 0x18E3);
+        const uint16_t bg = 0x18E3;
+        tft.fillRect(0, 26, 240, 28, bg);
         tft.drawFastHLine(0, 54, 240, 0x4208);
 
         // 1. Tool Toggle (PEN / ERASE)
-        tft.fillRoundRect(4, 28, 52, 24, 3, isEraser ? TFT_RED : 0x037A);
-        tft.drawRoundRect(4, 28, 52, 24, 3, TFT_WHITE);
-        tft.setTextColor(TFT_WHITE, isEraser ? TFT_RED : 0x037A);
+        uint16_t btnCol = isEraser ? TFT_RED : 0x037A;
+        UI_AA::fillRoundRect(tft, 4, 28, 52, 24, 4, btnCol, bg);
+        UI_AA::drawRoundRect(tft, 4, 28, 52, 24, 4, TFT_WHITE, bg);
+        tft.setTextColor(TFT_WHITE, btnCol);
         tft.setTextDatum(MC_DATUM);
         tft.drawString(isEraser ? "ERASE" : "PEN", 30, 40, 2);
 
         // 2. Brush Size Button
-        tft.fillRoundRect(60, 28, 54, 24, 3, 0x2965);
-        tft.drawRoundRect(60, 28, 54, 24, 3, TFT_CYAN);
+        UI_AA::fillRoundRect(tft, 60, 28, 54, 24, 4, 0x2965, bg);
+        UI_AA::drawRoundRect(tft, 60, 28, 54, 24, 4, TFT_CYAN, bg);
         tft.setTextColor(TFT_CYAN, 0x2965);
         char szBuf[12];
         snprintf(szBuf, sizeof(szBuf), "%dpx", brushSize);
         tft.drawString(szBuf, 87, 40, 2);
 
         // 3. Quick Size Steppers [-] and [+]
-        tft.fillRoundRect(118, 28, 26, 24, 3, 0x2124);
-        tft.drawRoundRect(118, 28, 26, 24, 3, TFT_WHITE);
+        UI_AA::fillRoundRect(tft, 118, 28, 26, 24, 4, 0x2124, bg);
+        UI_AA::drawRoundRect(tft, 118, 28, 26, 24, 4, TFT_WHITE, bg);
         tft.setTextColor(TFT_WHITE, 0x2124);
         tft.drawString("-", 131, 40, 2);
 
-        tft.fillRoundRect(148, 28, 26, 24, 3, 0x2124);
-        tft.drawRoundRect(148, 28, 26, 24, 3, TFT_WHITE);
+        UI_AA::fillRoundRect(tft, 148, 28, 26, 24, 4, 0x2124, bg);
+        UI_AA::drawRoundRect(tft, 148, 28, 26, 24, 4, TFT_WHITE, bg);
         tft.setTextColor(TFT_WHITE, 0x2124);
         tft.drawString("+", 161, 40, 2);
 
         // 4. Clear Canvas Button
-        tft.fillRoundRect(178, 28, 58, 24, 3, 0x8800);
-        tft.drawRoundRect(178, 28, 58, 24, 3, TFT_WHITE);
+        UI_AA::fillRoundRect(tft, 178, 28, 58, 24, 4, 0x8800, bg);
+        UI_AA::drawRoundRect(tft, 178, 28, 58, 24, 4, TFT_WHITE, bg);
         tft.setTextColor(TFT_WHITE, 0x8800);
         tft.drawString("CLEAR", 207, 40, 2);
     }
 
+    // =========================================================================
+    // ANTI-ALIASED UI BOTTOM BAR (Background: 0x1082)
+    // =========================================================================
     void drawBottomBar(TFT_eSPI& tft) {
-        tft.fillRect(0, 286, 240, 34, 0x1082);
+        const uint16_t bg = 0x1082;
+        tft.fillRect(0, 286, 240, 34, bg);
         tft.drawFastHLine(0, 285, 240, 0x3186);
 
-        // IbisPaint Color Wheel Swatch
+        // IbisPaint Active Color Wheel Swatch with Anti-Aliased Rings
         uint16_t activeCol = isEraser ? TFT_BLACK : currentColor;
-        tft.fillCircle(18, 302, 12, activeCol);
-        tft.drawCircle(18, 302, 13, TFT_WHITE);
-        tft.drawCircle(18, 302, 14, TFT_CYAN);
+        UI_AA::fillCircle(tft, 18, 302, 12, activeCol, bg);
+        UI_AA::drawCircle(tft, 18, 302, 13, TFT_WHITE, bg);
+        UI_AA::drawCircle(tft, 18, 302, 14, TFT_CYAN, bg);
 
-        // Quick Swatches (White, Red, Yellow, Green, Cyan, Blue)
+        // Quick Swatches with Anti-Aliasing (White, Red, Yellow, Green, Cyan, Blue)
         const uint16_t quickPal[6] = { TFT_WHITE, TFT_RED, TFT_YELLOW, TFT_GREEN, TFT_CYAN, TFT_BLUE };
         for (int i = 0; i < 6; i++) {
             int cx = 46 + i * 22;
-            tft.fillCircle(cx, 302, 8, quickPal[i]);
-            tft.drawCircle(cx, 302, 9, 0x52AA);
+            UI_AA::fillCircle(tft, cx, 302, 8, quickPal[i], bg);
+            UI_AA::drawCircle(tft, cx, 302, 9, 0x52AA, bg);
         }
 
         // Palette Modal Prompt Button
-        tft.fillRoundRect(180, 290, 56, 24, 3, 0x3186);
-        tft.drawRoundRect(180, 290, 56, 24, 3, TFT_YELLOW);
+        UI_AA::fillRoundRect(tft, 180, 290, 56, 24, 4, 0x3186, bg);
+        UI_AA::drawRoundRect(tft, 180, 290, 56, 24, 4, TFT_YELLOW, bg);
         tft.setTextColor(TFT_YELLOW, 0x3186);
         tft.setTextDatum(MC_DATUM);
         tft.drawString("COLOR", 208, 302, 1);
@@ -239,13 +220,14 @@ private:
     }
 
     // =========================================================================
-    // IBISPAINT STYLE COLOR PICKER MODAL
+    // IBISPAINT STYLE COLOR PICKER MODAL (Background: 0x1082)
     // =========================================================================
     void drawColorPickerModal(TFT_eSPI& tft) {
-        tft.fillRect(0, 26, 240, 294, 0x1082);
+        const uint16_t bg = 0x1082;
+        tft.fillRect(0, 26, 240, 294, bg);
         tft.drawRect(0, 26, 240, 294, TFT_CYAN);
 
-        tft.setTextColor(TFT_WHITE, 0x1082);
+        tft.setTextColor(TFT_WHITE, bg);
         tft.setTextDatum(TC_DATUM);
         tft.drawString("IBISPAINT COLOR PICKER", 120, 32, 2);
 
@@ -272,60 +254,62 @@ private:
         }
         int satX = 10 + (currentSat * 219) / 255;
         int valY = 184 - (currentVal * 92) / 255;
-        tft.drawCircle(satX, valY, 4, TFT_WHITE);
-        tft.drawCircle(satX, valY, 5, TFT_BLACK);
+        UI_AA::drawCircle(tft, satX, valY, 4, TFT_WHITE, bg);
+        UI_AA::drawCircle(tft, satX, valY, 5, TFT_BLACK, bg);
 
         // 3. Color Preview & Hex Swatch
         uint16_t previewCol = hsvToRgb565(currentHue, currentSat, currentVal);
-        tft.fillRoundRect(10, 194, 80, 40, 4, previewCol);
-        tft.drawRoundRect(10, 194, 80, 40, 4, TFT_WHITE);
+        UI_AA::fillRoundRect(tft, 10, 194, 80, 40, 5, previewCol, bg);
+        UI_AA::drawRoundRect(tft, 10, 194, 80, 40, 5, TFT_WHITE, bg);
 
         // 4. Preset Swatches (x: 98..230, y: 194..234)
         const uint16_t pal[8] = { TFT_WHITE, TFT_RED, TFT_ORANGE, TFT_YELLOW, TFT_GREEN, TFT_CYAN, TFT_BLUE, TFT_MAGENTA };
         for (int i = 0; i < 8; i++) {
             int px = 100 + (i % 4) * 32;
             int py = (i < 4) ? 194 : 216;
-            tft.fillRoundRect(px, py, 28, 18, 3, pal[i]);
-            tft.drawRoundRect(px, py, 28, 18, 3, (previewCol == pal[i]) ? TFT_WHITE : 0x4208);
+            UI_AA::fillRoundRect(tft, px, py, 28, 18, 3, pal[i], bg);
+            UI_AA::drawRoundRect(tft, px, py, 28, 18, 3, (previewCol == pal[i]) ? TFT_WHITE : 0x4208, bg);
         }
 
         // 5. Apply Button (x: 16..224, y: 248..286)
-        tft.fillRoundRect(16, 248, 208, 38, 5, TFT_GREEN);
-        tft.drawRoundRect(16, 248, 208, 38, 5, TFT_WHITE);
+        UI_AA::fillRoundRect(tft, 16, 248, 208, 38, 5, TFT_GREEN, bg);
+        UI_AA::drawRoundRect(tft, 16, 248, 208, 38, 5, TFT_WHITE, bg);
         tft.setTextColor(TFT_BLACK, TFT_GREEN);
         tft.setTextDatum(MC_DATUM);
         tft.drawString("APPLY COLOR", 120, 267, 4);
 
         // Close 'X'
-        tft.setTextColor(TFT_RED, 0x1082);
+        tft.setTextColor(TFT_RED, bg);
         tft.drawString("X", 224, 38, 4);
     }
 
     // =========================================================================
-    // BRUSH SIZE PICKER MODAL
+    // BRUSH SIZE PICKER MODAL (Background: 0x1082)
     // =========================================================================
     void drawSizePickerModal(TFT_eSPI& tft) {
-        tft.fillRect(0, 26, 240, 294, 0x1082);
+        const uint16_t bg = 0x1082;
+        tft.fillRect(0, 26, 240, 294, bg);
         tft.drawRect(0, 26, 240, 294, TFT_CYAN);
 
-        tft.setTextColor(TFT_WHITE, 0x1082);
+        tft.setTextColor(TFT_WHITE, bg);
         tft.setTextDatum(TC_DATUM);
         tft.drawString("BRUSH SIZE (1 - 100px)", 120, 32, 2);
 
-        // Live preview circle
+        // Live preview circle with Anti-Aliasing
         tft.fillRect(10, 56, 220, 110, TFT_BLACK);
         tft.drawRect(10, 56, 220, 110, 0x3186);
-        tft.fillCircle(120, 111, max(1, brushSize / 2), isEraser ? 0x52AA : currentColor);
-        tft.drawCircle(120, 111, max(1, brushSize / 2), TFT_WHITE);
+        int prevRadius = max(1, brushSize / 2);
+        UI_AA::fillCircle(tft, 120, 111, prevRadius, isEraser ? 0x52AA : currentColor, TFT_BLACK);
+        UI_AA::drawCircle(tft, 120, 111, prevRadius + 1, TFT_WHITE, TFT_BLACK);
 
         char buf[32];
         snprintf(buf, sizeof(buf), "Diameter: %d px", brushSize);
-        tft.setTextColor(TFT_CYAN, 0x1082);
+        tft.setTextColor(TFT_CYAN, bg);
         tft.setTextDatum(MC_DATUM);
         tft.drawString(buf, 120, 178, 2);
 
         // Slider Bar
-        tft.drawRoundRect(16, 198, 208, 16, 4, TFT_WHITE);
+        UI_AA::drawRoundRect(tft, 16, 198, 208, 16, 4, TFT_WHITE, bg);
         int fillW = ((brushSize - 1) * 204) / 99;
         tft.fillRect(18, 200, fillW, 12, TFT_CYAN);
         tft.fillRect(18 + fillW, 200, 204 - fillW, 12, 0x18E3);
@@ -334,17 +318,18 @@ private:
         const uint8_t szPresets[5] = { 2, 10, 25, 50, 100 };
         for (int i = 0; i < 5; i++) {
             int bx = 14 + i * 44;
-            tft.fillRoundRect(bx, 224, 40, 24, 3, (brushSize == szPresets[i]) ? TFT_CYAN : 0x2124);
-            tft.drawRoundRect(bx, 224, 40, 24, 3, TFT_WHITE);
-            tft.setTextColor((brushSize == szPresets[i]) ? TFT_BLACK : TFT_WHITE, (brushSize == szPresets[i]) ? TFT_CYAN : 0x2124);
+            uint16_t pCol = (brushSize == szPresets[i]) ? TFT_CYAN : 0x2124;
+            UI_AA::fillRoundRect(tft, bx, 224, 40, 24, 3, pCol, bg);
+            UI_AA::drawRoundRect(tft, bx, 224, 40, 24, 3, TFT_WHITE, bg);
+            tft.setTextColor((brushSize == szPresets[i]) ? TFT_BLACK : TFT_WHITE, pCol);
             char bsz[8];
             snprintf(bsz, sizeof(bsz), "%d", szPresets[i]);
             tft.drawString(bsz, bx + 20, 236, 2);
         }
 
         // Done Button
-        tft.fillRoundRect(16, 258, 208, 36, 5, TFT_GREEN);
-        tft.drawRoundRect(16, 258, 208, 36, 5, TFT_WHITE);
+        UI_AA::fillRoundRect(tft, 16, 258, 208, 36, 5, TFT_GREEN, bg);
+        UI_AA::drawRoundRect(tft, 16, 258, 208, 36, 5, TFT_WHITE, bg);
         tft.setTextColor(TFT_BLACK, TFT_GREEN);
         tft.drawString("DONE", 120, 276, 4);
     }
@@ -358,7 +343,7 @@ public:
     }
 
     const char* getName() const override { return "Draw Pad"; }
-    const char* getDescription() const override { return "Anti-aliased brush & IbisPaint palette"; }
+    const char* getDescription() const override { return "Solid brush & anti-aliased UI"; }
     uint16_t getThemeColor() const override { return TFT_GREEN; }
 
     void onEnter(TFT_eSPI& tft) override {
@@ -527,34 +512,42 @@ public:
         }
 
         // ==========================================
-        // 5. ANTI-ALIASED CANVAS DRAWING (1 - 100px)
+        // 5. CANVAS DRAWING (CRISP SOLID STROKES, CLEAN INTERSECTIONS)
         // ==========================================
         if (tx >= CANVAS_LEFT && tx <= CANVAS_RIGHT && ty >= CANVAS_TOP && ty <= CANVAS_BOTTOM) {
             uint16_t drawCol = isEraser ? TFT_BLACK : currentColor;
-            hasDrawnBefore = true;
-            float r = max(0.5f, brushSize / 2.0f);
-
-            int16_t smoothX = tx;
-            int16_t smoothY = ty;
+            int radius = max(1, (int)brushSize / 2);
 
             if (lastX >= 0 && lastY >= 0) {
-                // Low-pass EMA smoothing: 75% new position, 25% previous
-                smoothX = (tx * 3 + lastX) / 4;
-                smoothY = (ty * 3 + lastY) / 4;
+                int dx = (int)tx - (int)lastX;
+                int dy = (int)ty - (int)lastY;
+                int distSq = dx * dx + dy * dy;
 
-                int dx = (int)smoothX - (int)lastX;
-                int dy = (int)smoothY - (int)lastY;
-                int dist = max(abs(dx), abs(dy));
+                // Smart redraw: ignore redundant sub-pixel jitter (< 1.5px) to prevent clumping
+                if (distSq < 2) {
+                    return;
+                }
 
-                if (dist < 260) {
-                    drawSmoothStroke(tft, (float)lastX, (float)lastY, (float)smoothX, (float)smoothY, r, drawCol);
+                if (distSq < 260 * 260) {
+                    // Smooth coordinates to remove high-frequency ADC noise
+                    int smoothX = (tx * 3 + lastX) / 4;
+                    int smoothY = (ty * 3 + lastY) / 4;
+
+                    drawStrokeSegment(tft, lastX, lastY, smoothX, smoothY, radius, drawCol);
+                    lastX = smoothX;
+                    lastY = smoothY;
+                    hasDrawnBefore = true;
+                } else {
+                    lastX = tx;
+                    lastY = ty;
                 }
             } else {
-                drawSmoothStamp(tft, (float)smoothX, (float)smoothY, r, drawCol);
+                // First point of stroke (pen down)
+                drawSolidCircle(tft, tx, ty, radius, drawCol);
+                lastX = tx;
+                lastY = ty;
+                hasDrawnBefore = true;
             }
-
-            lastX = smoothX;
-            lastY = smoothY;
         } else {
             lastX = -1;
             lastY = -1;

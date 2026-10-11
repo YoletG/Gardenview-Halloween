@@ -5,6 +5,7 @@
 #include <xpt2046.h>
 #include "App.h"
 #include "pins.h"
+#include "UI_AA.h"
 
 class AppManager {
 private:
@@ -26,9 +27,9 @@ private:
             tft.drawFastHLine(0, 25, 240, 0x2965);
 
             if (activeAppIndex >= 0) {
-                // Back button
-                tft.fillRoundRect(4, 2, 58, 21, 3, 0x2124);
-                tft.drawRoundRect(4, 2, 58, 21, 3, TFT_CYAN);
+                // Back button with smooth AA edges
+                UI_AA::fillRoundRect(tft, 4, 2, 58, 21, 4, 0x2124, 0x0841);
+                UI_AA::drawRoundRect(tft, 4, 2, 58, 21, 4, TFT_CYAN, 0x0841);
                 tft.setTextColor(TFT_CYAN, 0x2124);
                 tft.setTextDatum(MC_DATUM);
                 tft.drawString("< HOME", 33, 12, 2);
@@ -91,12 +92,12 @@ private:
             int y = cardY + i * (cardH + cardSpacing);
             uint16_t themeCol = app->getThemeColor();
 
-            // Card background & border
-            tft.fillRoundRect(8, y, 224, cardH, 6, 0x18C3);
-            tft.drawRoundRect(8, y, 224, cardH, 6, themeCol);
+            // Card background & border with Anti-Aliasing
+            UI_AA::fillRoundRect(tft, 8, y, 224, cardH, 8, 0x18C3, TFT_BLACK);
+            UI_AA::drawRoundRect(tft, 8, y, 224, cardH, 8, themeCol, TFT_BLACK);
 
             // Icon Accent Box
-            tft.fillRoundRect(14, y + 8, 46, 52, 4, themeCol);
+            UI_AA::fillRoundRect(tft, 14, y + 8, 46, 52, 6, themeCol, 0x18C3);
             tft.setTextColor(TFT_BLACK, themeCol);
             tft.setTextDatum(MC_DATUM);
             char numBuf[4];

@@ -1,5 +1,6 @@
 #pragma once
 #include "App.h"
+#include "UI_AA.h"
 
 class AppGame : public App {
 private:
@@ -95,13 +96,13 @@ private:
         snprintf(buf, sizeof(buf), "Hi: %d", highScore);
         tft.drawString(buf, 110, 30, 2);
 
-        // Draw lives
+        // Draw lives with anti-aliasing
         int heartX = 194;
         for (int i = 0; i < 3; i++) {
             if (i < lives) {
-                tft.fillCircle(heartX + i * 14, 38, 4, TFT_RED);
+                UI_AA::fillCircle(tft, heartX + i * 14, 38, 4, TFT_RED, 0x18E3);
             } else {
-                tft.drawCircle(heartX + i * 14, 38, 4, 0x52AA);
+                UI_AA::drawCircle(tft, heartX + i * 14, 38, 4, 0x52AA, 0x18E3);
             }
         }
     }
@@ -111,12 +112,12 @@ private:
         drawHeader(tft);
         drawBricks(tft);
 
-        // Paddle
-        tft.fillRoundRect((int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_CYAN);
-        tft.drawRoundRect((int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_WHITE);
+        // Paddle with anti-aliasing
+        UI_AA::fillRoundRect(tft, (int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_CYAN, TFT_BLACK);
+        UI_AA::drawRoundRect(tft, (int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_WHITE, TFT_BLACK);
 
-        // Ball
-        tft.fillCircle((int)ballX, (int)ballY, BALL_RADIUS, TFT_YELLOW);
+        // Ball with anti-aliasing
+        UI_AA::fillCircle(tft, (int)ballX, (int)ballY, BALL_RADIUS, TFT_YELLOW, TFT_BLACK);
     }
 
 public:
@@ -129,9 +130,9 @@ public:
         resetGame();
         renderScene(tft);
 
-        // Show Ready Prompt
-        tft.fillRoundRect(30, 160, 180, 50, 6, 0x001F);
-        tft.drawRoundRect(30, 160, 180, 50, 6, TFT_CYAN);
+        // Show Ready Prompt with anti-aliasing
+        UI_AA::fillRoundRect(tft, 30, 160, 180, 50, 8, 0x001F, TFT_BLACK);
+        UI_AA::drawRoundRect(tft, 30, 160, 180, 50, 8, TFT_CYAN, TFT_BLACK);
         tft.setTextColor(TFT_WHITE, 0x001F);
         tft.setTextDatum(MC_DATUM);
         tft.drawString("TAP TO START", 120, 185, 2);
@@ -223,8 +224,8 @@ public:
 
             if (remainingBricks <= 0) {
                 state = STATE_VICTORY;
-                tft.fillRoundRect(30, 150, 180, 60, 6, 0x0540);
-                tft.drawRoundRect(30, 150, 180, 60, 6, TFT_GREEN);
+                UI_AA::fillRoundRect(tft, 30, 150, 180, 60, 8, 0x0540, TFT_BLACK);
+                UI_AA::drawRoundRect(tft, 30, 150, 180, 60, 8, TFT_GREEN, TFT_BLACK);
                 tft.setTextColor(TFT_GREEN, 0x0540);
                 tft.setTextDatum(MC_DATUM);
                 tft.drawString("VICTORY!", 120, 170, 4);
@@ -239,8 +240,8 @@ public:
             drawHeader(tft);
             if (lives <= 0) {
                 state = STATE_GAME_OVER;
-                tft.fillRoundRect(30, 150, 180, 60, 6, 0x9000);
-                tft.drawRoundRect(30, 150, 180, 60, 6, TFT_RED);
+                UI_AA::fillRoundRect(tft, 30, 150, 180, 60, 8, 0x9000, TFT_BLACK);
+                UI_AA::drawRoundRect(tft, 30, 150, 180, 60, 8, TFT_RED, TFT_BLACK);
                 tft.setTextColor(TFT_RED, 0x9000);
                 tft.setTextDatum(MC_DATUM);
                 tft.drawString("GAME OVER", 120, 170, 4);
@@ -257,16 +258,16 @@ public:
             }
         }
 
-        // Differential 60FPS Refresh
+        // Differential 60FPS Refresh with Anti-Aliasing
         if ((int)paddleX != (int)prevPaddleX) {
             tft.fillRoundRect((int)prevPaddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_BLACK);
-            tft.fillRoundRect((int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_CYAN);
-            tft.drawRoundRect((int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_WHITE);
+            UI_AA::fillRoundRect(tft, (int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_CYAN, TFT_BLACK);
+            UI_AA::drawRoundRect(tft, (int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_WHITE, TFT_BLACK);
             prevPaddleX = paddleX;
         }
 
         tft.fillCircle((int)prevBallX, (int)prevBallY, BALL_RADIUS + 1, TFT_BLACK);
-        tft.fillCircle((int)ballX, (int)ballY, BALL_RADIUS, TFT_YELLOW);
+        UI_AA::fillCircle(tft, (int)ballX, (int)ballY, BALL_RADIUS, TFT_YELLOW, TFT_BLACK);
         prevBallX = ballX;
         prevBallY = ballY;
     }
