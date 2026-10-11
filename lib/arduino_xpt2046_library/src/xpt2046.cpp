@@ -72,7 +72,7 @@ boolean XPT2046::pressed(void)
     if (digitalRead(_tirq) == HIGH) {
         return false;
     }
-    Serial.println("Pressed!");
+    // Serial.println("Pressed!");
     if (_spi) {
         _spi->beginTransaction(SPI_SETTING);
         digitalWrite(_cs, LOW);
@@ -106,6 +106,9 @@ boolean XPT2046::pressed(void)
     // if (abs(_zraw) >= Z_THRESHOLD) {
         _xraw = besttwoavg(data[0], data[2], data[4]);
         _yraw = besttwoavg(data[1], data[3], data[5]);
+        if (_xraw < 50 || _yraw < 50 || _xraw > 4000 || _yraw > 4000) {
+            return false;
+        }
         if (_rotation == 0 || _rotation == 2) {
             _xcoord = constrain(map(_xraw, _hmin_logic, _hmax_logic, 0, _hres_logic), 0, _hres_logic);
             _ycoord = constrain(map(_yraw, _vmin_logic, _vmax_logic, 0, _vres_logic), 0, _vres_logic);

@@ -1,0 +1,275 @@
+#pragma once
+#include "App.h"
+
+class AppGame : public App {
+private:
+    enum GameState { STATE_READY, STATE_PLAYING, STATE_GAME_OVER, STATE_VICTORY };
+    GameState state = STATE_READY;
+
+    // Arena dimensions (Portrait: 240 x 320)
+    static const int ARENA_W = 240;
+    static const int ARENA_H = 320;
+    static const int BOTTOM_OFFSET = 310;
+
+    // Paddle
+    const int PADDLE_W = 48;
+    const int PADDLE_H = 8;
+    const int PADDLE_Y = 285;
+    float paddleX = (ARENA_W - PADDLE_W) / 2.0f;
+    float prevPaddleX = (ARENA_W - PADDLE_W) / 2.0f;
+
+    // Ball
+    const int BALL_RADIUS = 3;
+    float ballX = 120.0f;
+    float ballY = 250.0f;
+    float prevBallX = 120.0f;
+    float prevBallY = 250.0f;
+    float ballVX = 2.0f;
+    float ballVY = -3.0f;
+    float baseSpeed = 3.4f;
+
+    // Bricks: 4 rows x 6 columns
+    static const int BRICK_ROWS = 4;
+    static const int BRICK_COLS = 6;
+    static const int BRICK_W = 35;
+    static const int BRICK_H = 12;
+    static const int BRICK_GAP = 3;
+    static const int BRICK_START_X = 7;
+    static const int BRICK_START_Y = 56;
+
+    bool bricks[BRICK_ROWS][BRICK_COLS];
+    const uint16_t rowColors[BRICK_ROWS] = {
+        TFT_RED, TFT_ORANGE, TFT_GREEN, TFT_CYAN
+    };
+
+    uint16_t score = 0;
+    uint16_t highScore = 0;
+    int8_t lives = 3;
+    int remainingBricks = 0;
+
+    void resetGame() {
+        score = 0;
+        lives = 3;
+        resetRound();
+    }
+
+    void resetRound() {
+        paddleX = (ARENA_W - PADDLE_W) / 2.0f;
+        prevPaddleX = paddleX;
+        ballX = 120.0f;
+        ballY = 250.0f;
+        prevBallX = ballX;
+        prevBallY = ballY;
+        ballVX = 2.0f;
+        ballVY = -baseSpeed;
+
+        remainingBricks = BRICK_ROWS * BRICK_COLS;
+        for (int r = 0; r < BRICK_ROWS; r++) {
+            for (int c = 0; c < BRICK_COLS; c++) {
+                bricks[r][c] = true;
+            }
+        }
+    }
+
+    void drawBricks(TFT_eSPI& tft) {
+        for (int r = 0; r < BRICK_ROWS; r++) {
+            for (int c = 0; c < BRICK_COLS; c++) {
+                if (bricks[r][c]) {
+                    int bx = BRICK_START_X + c * (BRICK_W + BRICK_GAP);
+                    int by = BRICK_START_Y + r * (BRICK_H + BRICK_GAP);
+                    tft.fillRoundRect(bx, by, BRICK_W, BRICK_H, 2, rowColors[r]);
+                    tft.drawRoundRect(bx, by, BRICK_W, BRICK_H, 2, TFT_WHITE);
+                }
+            }
+        }
+    }
+
+    void drawHeader(TFT_eSPI& tft) {
+        tft.fillRect(0, 26, ARENA_W, 24, 0x18E3);
+        tft.setTextColor(TFT_WHITE, 0x18E3);
+        tft.setTextDatum(TL_DATUM);
+        char buf[32];
+        snprintf(buf, sizeof(buf), "Score: %d", score);
+        tft.drawString(buf, 8, 30, 2);
+
+        snprintf(buf, sizeof(buf), "Hi: %d", highScore);
+        tft.drawString(buf, 110, 30, 2);
+
+        // Draw lives
+        int heartX = 194;
+        for (int i = 0; i < 3; i++) {
+            if (i < lives) {
+                tft.fillCircle(heartX + i * 14, 38, 4, TFT_RED);
+            } else {
+                tft.drawCircle(heartX + i * 14, 38, 4, 0x52AA);
+            }
+        }
+    }
+
+    void renderScene(TFT_eSPI& tft) {
+        tft.fillRect(0, 50, ARENA_W, ARENA_H - 50, TFT_BLACK);
+        drawHeader(tft);
+        drawBricks(tft);
+
+        // Paddle
+        tft.fillRoundRect((int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_CYAN);
+        tft.drawRoundRect((int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_WHITE);
+
+        // Ball
+        tft.fillCircle((int)ballX, (int)ballY, BALL_RADIUS, TFT_YELLOW);
+    }
+
+public:
+    const char* getName() const override { return "Breakout"; }
+    const char* getDescription() const override { return "Retro arcade brick breaker with touch paddle"; }
+    uint16_t getThemeColor() const override { return TFT_ORANGE; }
+
+    void onEnter(TFT_eSPI& tft) override {
+        state = STATE_READY;
+        resetGame();
+        renderScene(tft);
+
+        // Show Ready Prompt
+        tft.fillRoundRect(30, 160, 180, 50, 6, 0x001F);
+        tft.drawRoundRect(30, 160, 180, 50, 6, TFT_CYAN);
+        tft.setTextColor(TFT_WHITE, 0x001F);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("TAP TO START", 120, 185, 2);
+    }
+
+    void onUpdate(TFT_eSPI& tft, const TouchPoint& touch, unsigned long dt) override {
+        if (state == STATE_READY) {
+            if (touch.justPressed && touch.y > 50) {
+                state = STATE_PLAYING;
+                renderScene(tft);
+            }
+            return;
+        }
+
+        if (state == STATE_GAME_OVER || state == STATE_VICTORY) {
+            if (touch.justPressed && touch.y > 50) {
+                resetGame();
+                state = STATE_PLAYING;
+                renderScene(tft);
+            }
+            return;
+        }
+
+        // Touch Paddle Control
+        if (touch.pressed && touch.y >= 100) {
+            float targetPaddleX = touch.x - (PADDLE_W / 2.0f);
+            if (targetPaddleX < 2) targetPaddleX = 2;
+            if (targetPaddleX > ARENA_W - PADDLE_W - 2) targetPaddleX = ARENA_W - PADDLE_W - 2;
+            paddleX += (targetPaddleX - paddleX) * 0.45f;
+        }
+
+        // Ball Physics
+        ballX += ballVX;
+        ballY += ballVY;
+
+        if (ballX <= BALL_RADIUS + 2) {
+            ballX = BALL_RADIUS + 2;
+            ballVX = -ballVX;
+        } else if (ballX >= ARENA_W - BALL_RADIUS - 2) {
+            ballX = ARENA_W - BALL_RADIUS - 2;
+            ballVX = -ballVX;
+        }
+
+        if (ballY <= 52 + BALL_RADIUS) {
+            ballY = 52 + BALL_RADIUS;
+            ballVY = -ballVY;
+        }
+
+        // Paddle Collision
+        if (ballY + BALL_RADIUS >= PADDLE_Y && prevBallY + BALL_RADIUS <= PADDLE_Y + 4) {
+            if (ballX >= paddleX - 2 && ballX <= paddleX + PADDLE_W + 2) {
+                ballY = PADDLE_Y - BALL_RADIUS;
+                float hitOffset = (ballX - (paddleX + PADDLE_W / 2.0f)) / (PADDLE_W / 2.0f);
+                ballVX = hitOffset * 3.8f;
+                ballVY = -sqrtf(max(1.5f, baseSpeed * baseSpeed - ballVX * ballVX));
+                if (fabsf(ballVY) < 1.8f) ballVY = -1.8f;
+            }
+        }
+
+        // Brick Collision
+        int brickRow = -1, brickCol = -1;
+        for (int r = 0; r < BRICK_ROWS; r++) {
+            for (int c = 0; c < BRICK_COLS; c++) {
+                if (bricks[r][c]) {
+                    int bx = BRICK_START_X + c * (BRICK_W + BRICK_GAP);
+                    int by = BRICK_START_Y + r * (BRICK_H + BRICK_GAP);
+                    if (ballX + BALL_RADIUS >= bx && ballX - BALL_RADIUS <= bx + BRICK_W &&
+                        ballY + BALL_RADIUS >= by && ballY - BALL_RADIUS <= by + BRICK_H) {
+                        brickRow = r;
+                        brickCol = c;
+                        break;
+                    }
+                }
+            }
+            if (brickRow >= 0) break;
+        }
+
+        if (brickRow >= 0) {
+            bricks[brickRow][brickCol] = false;
+            remainingBricks--;
+            score += (BRICK_ROWS - brickRow) * 10;
+            if (score > highScore) highScore = score;
+            ballVY = -ballVY;
+
+            int bx = BRICK_START_X + brickCol * (BRICK_W + BRICK_GAP);
+            int by = BRICK_START_Y + brickRow * (BRICK_H + BRICK_GAP);
+            tft.fillRect(bx, by, BRICK_W, BRICK_H, TFT_BLACK);
+            drawHeader(tft);
+
+            if (remainingBricks <= 0) {
+                state = STATE_VICTORY;
+                tft.fillRoundRect(30, 150, 180, 60, 6, 0x0540);
+                tft.drawRoundRect(30, 150, 180, 60, 6, TFT_GREEN);
+                tft.setTextColor(TFT_GREEN, 0x0540);
+                tft.setTextDatum(MC_DATUM);
+                tft.drawString("VICTORY!", 120, 170, 4);
+                tft.drawString("Tap to play again", 120, 195, 2);
+                return;
+            }
+        }
+
+        // Ball out
+        if (ballY > BOTTOM_OFFSET) {
+            lives--;
+            drawHeader(tft);
+            if (lives <= 0) {
+                state = STATE_GAME_OVER;
+                tft.fillRoundRect(30, 150, 180, 60, 6, 0x9000);
+                tft.drawRoundRect(30, 150, 180, 60, 6, TFT_RED);
+                tft.setTextColor(TFT_RED, 0x9000);
+                tft.setTextDatum(MC_DATUM);
+                tft.drawString("GAME OVER", 120, 170, 4);
+                tft.drawString("Tap to try again", 120, 195, 2);
+                return;
+            } else {
+                tft.fillCircle((int)prevBallX, (int)prevBallY, BALL_RADIUS + 1, TFT_BLACK);
+                tft.fillRoundRect((int)prevPaddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_BLACK);
+                paddleX = (ARENA_W - PADDLE_W) / 2.0f;
+                ballX = 120.0f;
+                ballY = 250.0f;
+                ballVX = 2.0f;
+                ballVY = -baseSpeed;
+            }
+        }
+
+        // Differential 60FPS Refresh
+        if ((int)paddleX != (int)prevPaddleX) {
+            tft.fillRoundRect((int)prevPaddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_BLACK);
+            tft.fillRoundRect((int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_CYAN);
+            tft.drawRoundRect((int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_WHITE);
+            prevPaddleX = paddleX;
+        }
+
+        tft.fillCircle((int)prevBallX, (int)prevBallY, BALL_RADIUS + 1, TFT_BLACK);
+        tft.fillCircle((int)ballX, (int)ballY, BALL_RADIUS, TFT_YELLOW);
+        prevBallX = ballX;
+        prevBallY = ballY;
+    }
+
+    void onExit(TFT_eSPI& tft) override {}
+};
