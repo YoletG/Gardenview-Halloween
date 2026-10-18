@@ -20,7 +20,7 @@ private:
     float prevPaddleX = (ARENA_W - PADDLE_W) / 2.0f;
 
     // Ball
-    const int BALL_RADIUS = 3;
+    const int BALL_RADIUS = 4;
     float ballX = 120.0f;
     float ballY = 250.0f;
     float prevBallX = 120.0f;
@@ -78,8 +78,8 @@ private:
                 if (bricks[r][c]) {
                     int bx = BRICK_START_X + c * (BRICK_W + BRICK_GAP);
                     int by = BRICK_START_Y + r * (BRICK_H + BRICK_GAP);
-                    tft.fillRoundRect(bx, by, BRICK_W, BRICK_H, 2, rowColors[r]);
-                    tft.drawRoundRect(bx, by, BRICK_W, BRICK_H, 2, TFT_WHITE);
+                    UI_AA::fillRoundRect(tft, bx, by, BRICK_W, BRICK_H, 3, rowColors[r], TFT_BLACK);
+                    UI_AA::drawRoundRect(tft, bx, by, BRICK_W, BRICK_H, 3, TFT_WHITE, TFT_BLACK);
                 }
             }
         }
@@ -219,7 +219,7 @@ public:
 
             int bx = BRICK_START_X + brickCol * (BRICK_W + BRICK_GAP);
             int by = BRICK_START_Y + brickRow * (BRICK_H + BRICK_GAP);
-            tft.fillRect(bx, by, BRICK_W, BRICK_H, TFT_BLACK);
+            tft.fillRect(bx - 1, by - 1, BRICK_W + 2, BRICK_H + 2, TFT_BLACK);
             drawHeader(tft);
 
             if (remainingBricks <= 0) {
@@ -248,25 +248,31 @@ public:
                 tft.drawString("Tap to try again", 120, 195, 2);
                 return;
             } else {
-                tft.fillCircle((int)prevBallX, (int)prevBallY, BALL_RADIUS + 1, TFT_BLACK);
-                tft.fillRoundRect((int)prevPaddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_BLACK);
+                tft.fillCircle((int)prevBallX, (int)prevBallY, BALL_RADIUS + 2, TFT_BLACK);
+                tft.fillRect((int)prevPaddleX - 1, PADDLE_Y - 1, PADDLE_W + 2, PADDLE_H + 2, TFT_BLACK);
                 paddleX = (ARENA_W - PADDLE_W) / 2.0f;
                 ballX = 120.0f;
                 ballY = 250.0f;
+                prevPaddleX = paddleX;
+                prevBallX = ballX;
+                prevBallY = ballY;
                 ballVX = 2.0f;
                 ballVY = -baseSpeed;
+                UI_AA::fillRoundRect(tft, (int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_CYAN, TFT_BLACK);
+                UI_AA::drawRoundRect(tft, (int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_WHITE, TFT_BLACK);
+                UI_AA::fillCircle(tft, (int)ballX, (int)ballY, BALL_RADIUS, TFT_YELLOW, TFT_BLACK);
             }
         }
 
         // Differential 60FPS Refresh with Anti-Aliasing
         if ((int)paddleX != (int)prevPaddleX) {
-            tft.fillRoundRect((int)prevPaddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_BLACK);
+            tft.fillRect((int)prevPaddleX - 1, PADDLE_Y - 1, PADDLE_W + 2, PADDLE_H + 2, TFT_BLACK);
             UI_AA::fillRoundRect(tft, (int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_CYAN, TFT_BLACK);
             UI_AA::drawRoundRect(tft, (int)paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 3, TFT_WHITE, TFT_BLACK);
             prevPaddleX = paddleX;
         }
 
-        tft.fillCircle((int)prevBallX, (int)prevBallY, BALL_RADIUS + 1, TFT_BLACK);
+        tft.fillCircle((int)prevBallX, (int)prevBallY, BALL_RADIUS + 2, TFT_BLACK);
         UI_AA::fillCircle(tft, (int)ballX, (int)ballY, BALL_RADIUS, TFT_YELLOW, TFT_BLACK);
         prevBallX = ballX;
         prevBallY = ballY;
