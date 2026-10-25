@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🎃 Gardenview Halloween - LilyGO T-HMI Web Simulator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      background: radial-gradient(circle at center, #111827 0%, #050811 100%);
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 26px;
+      color: #f97316;
+      text-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    p.subtitle {
+      color: #9ca3af;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    /* Device Frame */
+    .device-wrapper {
+      position: relative;
+      background: #1f2937;
+      border: 4px solid #374151;
+      border-radius: 28px;
+      padding: 30px 24px 34px 24px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(249, 115, 22, 0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .device-brand {
+      color: #06b6d4;
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 3px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+    /* Screen canvas */
+    #gameCanvas {
+      width: 360px;
+      height: 480px;
+      background: #000;
+      border-radius: 12px;
+      border: 2px solid #111827;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9);
+      cursor: crosshair;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+    .device-footer {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 14px;
+      padding: 0 10px;
+      color: #6b7280;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .device-btn-sim {
+      width: 44px;
+      height: 14px;
+      background: #374151;
+      border-radius: 7px;
+      border: 1px solid #4b5563;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: #9ca3af;
+    }
+    .device-btn-sim:active {
+      background: #4b5563;
+      transform: translateY(1px);
+    }
+    /* Instructions */
+    .instructions {
+      max-width: 520px;
+      margin-top: 20px;
+      background: rgba(31, 41, 55, 0.6);
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .instructions b {
+      color: #f97316;
+    }
+    .tag {
+      display: inline-block;
+      background: #374151;
+      color: #00f0ff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 11px;
+    }
+    .repo-link {
+      margin-top: 15px;
+      color: #00f0ff;
+      text-decoration: none;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px dashed #00f0ff;
+    }
+    .repo-link:hover {
+      color: #38bdf8;
+      border-bottom-style: solid;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🎃 Gardenview Halloween</h1>
+    <p class="subtitle">Dandy's World Retro Touch Survival Arcade for LilyGO T-HMI ESP32-S3</p>
+  </header>
+
+  <div class="device-wrapper">
+    <div class="device-brand">LILYGO T-HMI • ESP32-S3</div>
+    <canvas id="gameCanvas" width="240" height="320"></canvas>
+    <div class="device-footer">
+      <span>2.8" ST7789 PARALLEL LCD</span>
+      <div class="device-btn-sim" id="bootBtn" title="Press BOOT Key">BOOT</div>
+      <span>XPT2046 TOUCH</span>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <b>🎮 Controls:</b> Click/Drag to steer Gourdy • Stand next to generators to extract • Click screen during <span class="tag">SKILL CHECK</span> • Click <span class="tag">STUN</span> (or press <b>F</b>) for Flashlight Stun • Click <span class="tag">RUSH</span> (or press <b>Space</b>) for Sugar Rush • Touch <span class="tag">&lt; ARC</span> to return to Arcade.
+  </div>
+
+  <a class="repo-link" href="https://github.com/YoletG/Gardenview-Halloween" target="_blank">
+    📂 View Repository on GitHub (YoletG/Gardenview-Halloween) &rarr;
+  </a>
+
+  <script>
+    // Audio Synth for authentic retro sounds
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(freq, type, duration, vol=0.1) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch(e) {}
+    }
+
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Game States
+    const STATE_MENU = 0;
+    const STATE_TITLE = 1;
+    const STATE_PLAYING = 2;
+    const STATE_DANDY_SHOP = 3;
+    const STATE_FLOOR_CLEAR = 4;
+    const STATE_GAME_OVER = 5;
+
+    let gameState = STATE_TITLE;
+
+    // Player Gourdy
+    let gx = 120, gy = 245;
+    let targetX = 120, targetY = 245;
+    let facingAngle = -Math.PI / 2;
+    let walkAnimPhase = 0;
+    let isMoving = false;
+    let lives = 3;
+    let stamina = 100;
+    let candiesStocked = 1;
+    let flashlightCharges = 2;
+    let sugarRushUntil = 0;
+    let invulnerableUntil = 0;
+    let flashlightCooldown = 0;
+
+    // Game Progression
+    let floorLevel = 1;
+    let score = 0;
+    let highScore = 450;
+    let ichorWallet = 14;
+    let bannerText = "";
+    let bannerUntil = 0;
+    let elevatorUnlocked = false;
+
+    // Obstacles
+    const obstacles = [
+      { x: 34, y: 105, w: 24, h: 24 },
+      { x: 182, y: 105, w: 24, h: 24 },
+      { x: 48, y: 195, w: 28, h: 20 },
+      { x: 164, y: 195, w: 28, h: 20 }
+    ];
+
+    // Machines
+    let machines = [
+      { x: 75, y: 145, progress: 0, completed: false, isExtracting: false, skillCheckActive: false, needleAngle: 0, hitZoneStart: 1.5, hitZoneWidth: 0.65, nextCheck: Date.now() + 3000 },
+      { x: 165, y: 145, progress: 0, completed: false, isExtracting: false, skillCheckActive: false, needleAngle: 0, hitZoneStart: 2.2, hitZoneWidth: 0.65, nextCheck: Date.now() + 4000 }
+    ];
+
+    // Buckets
+    let buckets = [
+      { x: 36, y: 75, opened: false },
+      { x: 212, y: 230, opened: false }
+    ];
+
+    // Ichor Drops
+    let ichorList = [];
+
+    // Twisteds
+    let twisteds = [];
+
+    function setupFloor(floor) {
+      floorLevel = floor;
+      gx = 120; gy = 245;
+      targetX = gx; targetY = gy;
+      elevatorUnlocked = false;
+      stamina = 100;
+
+      machines[0].progress = 0; machines[0].completed = false; machines[0].skillCheckActive = false; machines[0].nextCheck = Date.now() + 3000;
+      machines[1].progress = 0; machines[1].completed = false; machines[1].skillCheckActive = false; machines[1].nextCheck = Date.now() + 4500;
+
+      buckets[0].opened = false;
+      buckets[1].opened = false;
+
+      ichorList = [
+        { x: 32, y: 160, active: true },
+        { x: 208, y: 160, active: true },
+        { x: 120, y: 180, active: true },
+        { x: 80, y: 95, active: true },
+        { x: 160, y: 95, active: true }
+      ];
+
+      twisteds = [
+        { type: 0, ai: 0, x: 175, y: 85, targetX: 175, targetY: 85, speed: 1.15 + floor * 0.1, stunUntil: 0, timer: Date.now() + 3000 },
+        { type: 1, ai: 0, x: 65, y: 75, targetX: 65, targetY: 75, speed: 1.45 + floor * 0.1, stunUntil: 0, timer: Date.now() + 4000 }
+      ];
+    }
+
+    function resetGame() {
+      score = 0;
+      lives = 3;
+      ichorWallet = 10;
+      candiesStocked = 1;
+      flashlightCharges = 2;
+      setupFloor(1);
+    }
+
+    // Input handlers
+    let isMouseDown = false;
+    canvas.addEventListener("pointerdown", (e) => {
+      isMouseDown = true;
+      handleTouch(e);
+    });
+    window.addEventListener("pointerup", () => isMouseDown = false);
+    canvas.addEventListener("pointermove", (e) => {
+      if (isMouseDown && gameState === STATE_PLAYING) {
+        handleTouch(e, false);
+      }
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "f" || e.key === "F") triggerFlashlight();
+      if (e.key === " ") triggerSugarRush();
+    });
+
+    document.getElementById("bootBtn").addEventListener("click", () => {
+      playBeep(440, "sine", 0.1);
+      gameState = STATE_TITLE;
+    });
+
+    function getCanvasCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    function triggerFlashlight() {
+      if (flashlightCharges > 0 && Date.now() > flashlightCooldown && gameState === STATE_PLAYING) {
+        flashlightCharges--;
+        flashlightCooldown = Date.now() + 4000;
+        playBeep(880, "triangle", 0.2, 0.25);
+        twisteds.forEach(tw => {
+          let dist = Math.hypot(tw.x - gx, tw.y - gy);
+          if (dist < 85) {
+            tw.ai = 3; // STUNNED
+            tw.stunUntil = Date.now() + 2500;
+          }
+        });
+        bannerText = "FLASH! TWISTED STUNNED!";
+        bannerUntil = Date.now() + 1500;
+      }
+    }
+
+    function triggerSugarRush() {
+      if (candiesStocked > 0 && Date.now() > sugarRushUntil && gameState === STATE_PLAYING) {
+        candiesStocked--;
+        sugarRushUntil = Date.now() + 4500;
+        playBeep(659, "sawtooth", 0.3, 0.2);
+        playBeep(880, "sine", 0.4, 0.2);
+        bannerText = "SUGAR RUSH ACTIVATED!";
+        bannerUntil = Date.now() + 1500;
+      }
+    }
+
+    function handleTouch(e, isTap=true) {
+      const { x, y } = getCanvasCoords(e);
+
+      // Back to Arcade
+      if (isTap && x <= 50 && y >= 26 && y <= 48) {
+        playBeep(330, "sine", 0.08);
+        gameState = STATE_TITLE;
+        return;
+      }
+
+      if (gameState === STATE_TITLE) {
+        if (isTap && y > 50) {
+          playBeep(523, "square", 0.15);
+          resetGame();
+          gameState = STATE_PLAYING;
+        }
+        return;
+      }
+
+      if (gameState === STATE_DANDY_SHOP) {
+        if (isTap) {
+          if (y >= 150 && y <= 184 && ichorWallet >= 8) {
+            ichorWallet -= 8;
+            lives = Math.min(3, lives + 1);
+            playBeep(784, "sine", 0.15);
+          } else if (y >= 190 && y <= 224 && ichorWallet >= 5) {
+            ichorWallet -= 5;
+            candiesStocked++;
+            playBeep(784, "sine", 0.15);
+          } else if (y >= 230 && y <= 264 && ichorWallet >= 6) {
+            ichorWallet -= 6;
+            flashlightCharges += 2;
+            playBeep(784, "sine", 0.15);
+          } else if (y >= 274 && y <= 312) {
+            playBeep(600, "triangle", 0.2);
+            setupFloor(floorLevel + 1);
+            gameState = STATE_PLAYING;
+          }
+        }
+        return;
+      }
+
+      if (gameState === STATE_GAME_OVER) {
+        if (isTap && y > 50) {
+          playBeep(440, "sine", 0.1);
+          resetGame();
+          gameState = STATE_PLAYING;
+        }
+        return;
+      }
+
+      if (gameState === STATE_PLAYING) {
+        // Flashlight button (x: 10..42, y: 286..318)
+        if (Math.hypot(x - 26, y - 302) <= 22 && isTap) {
+          triggerFlashlight();
+          return;
+        }
+        // Sugar Rush button (x: 198..230, y: 286..318)
+        if (Math.hypot(x - 214, y - 302) <= 22 && isTap) {
+          triggerSugarRush();
+          return;
+        }
+
+        // Skill check tap check
+        let handledSkillCheck = false;
+        machines.forEach(m => {
+          if (m.skillCheckActive && isTap) {
+            let diff = Math.abs(m.needleAngle - (m.hitZoneStart + m.hitZoneWidth / 2));
+            if (diff <= m.hitZoneWidth / 2) {
+              m.progress = Math.min(100, m.progress + 14);
+              score += 50;
+              bannerText = "SKILL CHECK: GREAT HIT!";
+              playBeep(987, "sine", 0.2, 0.25);
+            } else {
+              m.progress = Math.max(0, m.progress - 5);
+              bannerText = "SKILL CHECK FAILED!";
+              playBeep(180, "sawtooth", 0.3, 0.3);
+              alertTwisteds(m.x, m.y);
+            }
+            m.skillCheckActive = false;
+            m.nextCheck = Date.now() + 3500;
+            bannerUntil = Date.now() + 1200;
+            handledSkillCheck = true;
+          }
+        });
+
+        if (!handledSkillCheck && y >= 52 && y <= 282) {
+          targetX = Math.max(18, Math.min(222, x));
+          targetY = Math.max(64, Math.min(270, y));
+        }
+      }
+    }
+
+    function alertTwisteds(ax, ay) {
+      twisteds.forEach(tw => {
+        if (tw.ai !== 3) {
+          tw.ai = 1; // INVESTIGATE
+          tw.targetX = ax;
+          tw.targetY = ay;
+          tw.timer = Date.now() + 4500;
+        }
+      });
+    }
+
+    function checkCollision(nx, ny, r) {
+      for (let ob of obstacles) {
+        if (nx + r > ob.x && nx - r < ob.x + ob.w &&
+            ny + r > ob.y && ny - r < ob.y + ob.h) return true;
+      }
+      for (let m of machines) {
+        if (nx + r > m.x - 16 && nx - r < m.x + 16 &&
+            ny + r > m.y - 12 && ny - r < m.y + 12) return true;
+      }
+      return false;
+    }
+
+    // =========================================================================
+    // GAME LOOP
+    // =========================================================================
+    let lastTime = performance.now();
+    function loop(now) {
+      const dt = Math.min(now - lastTime, 50);
+      lastTime = now;
+
+      update(dt);
+      render();
+
+      requestAnimationFrame(loop);
+    }
+
+    function update(dt) {
+      if (gameState !== STATE_PLAYING) return;
+
+      // Gourdy Movement
+      const hasRush = Date.now() < sugarRushUntil;
+      let spd = (hasRush ? 3.5 : 2.3) * (dt / 16.6);
+
+      let dx = targetX - gx;
+      let dy = targetY - gy;
+      let dist = Math.hypot(dx, dy);
+
+      if (dist > 3) {
+        isMoving = true;
+        facingAngle = Math.atan2(dy, dx);
+        walkAnimPhase += 0.35;
+        if (stamina > 0) stamina = Math.max(0, stamina - (hasRush ? 0.08 : 0.04));
+        else spd *= 0.65;
+
+        let stepX = (dx / dist) * Math.min(dist, spd);
+        let stepY = (dy / dist) * Math.min(dist, spd);
+
+        if (!checkCollision(gx + stepX, gy, 8)) gx += stepX;
+        if (!checkCollision(gx, gy + stepY, 8)) gy += stepY;
+      } else {
+        isMoving = false;
+        stamina = Math.min(100, stamina + 0.2);
+      }
+
+      // Extraction & Skill Checks
+      let allComp = true;
+      machines.forEach((m, idx) => {
+        if (!m.completed) allComp = false;
+
+        let inRange = Math.hypot(gx - m.x, gy - m.y) < 26;
+        m.isExtracting = inRange && !m.completed;
+
+        if (m.isExtracting) {
+          m.progress = Math.min(100, m.progress + (dt * 0.015));
+          score += 1;
+          if (m.progress >= 100) {
+            m.completed = true;
+            m.skillCheckActive = false;
+            score += 200;
+            bannerText = `GENERATOR ${idx + 1} EXTRACTED!`;
+            bannerUntil = Date.now() + 1800;
+            playBeep(880, "sine", 0.3);
+          }
+
+          if (!m.skillCheckActive && Date.now() > m.nextCheck && !m.completed) {
+            m.skillCheckActive = true;
+            m.needleAngle = 0;
+            m.hitZoneStart = 1.0 + Math.random() * 3.5;
+            m.hitZoneWidth = 0.65;
+            playBeep(440, "sine", 0.1);
+          }
+
+          if (m.skillCheckActive) {
+            m.needleAngle += dt * 0.007;
+            if (m.needleAngle >= 6.28) {
+              m.progress = Math.max(0, m.progress - 5);
+              bannerText = "MISSED SKILL CHECK!";
+              bannerUntil = Date.now() + 1200;
+              alertTwisteds(m.x, m.y);
+              playBeep(200, "sawtooth", 0.3);
+              m.skillCheckActive = false;
+              m.nextCheck = Date.now() + 3500;
+            }
+          }
+        } else {
+          m.skillCheckActive = false;
+        }
+      });
+
+      if (allComp && !elevatorUnlocked) {
+        elevatorUnlocked = true;
+        bannerText = "ELEVATOR READY! ESCAPE!";
+        bannerUntil = Date.now() + 2500;
+        playBeep(659, "triangle", 0.4);
+      }
+
+      // Elevator Entry
+      if (elevatorUnlocked && gy <= 72 && Math.abs(gx - 120) < 23) {
+        score += 500;
+        playBeep(880, "sine", 0.4);
+        gameState = STATE_DANDY_SHOP;
+      }
+
+      // Trick Buckets
+      buckets.forEach(b => {
+        if (!b.opened && Math.hypot(gx - b.x, gy - b.y) < 18) {
+          b.opened = true;
+          let r = Math.random();
+          if (r < 0.4) {
+            candiesStocked++;
+            bannerText = "TREAT: CANDY CORN!";
+          } else if (r < 0.75) {
+            ichorWallet += 5;
+            bannerText = "TREAT: +5 ICHOR!";
+          } else if (r < 0.9) {
+            lives = Math.min(3, lives + 1);
+            bannerText = "TREAT: CHOCOLATE (+1 HEART)!";
+          } else {
+            alertTwisteds(gx, gy);
+            bannerText = "TRICK: TWISTEDS SPOOKED!";
+          }
+          bannerUntil = Date.now() + 1800;
+          playBeep(523, "triangle", 0.2);
+        }
+      });
+
+      // Ichor Pickups
+      ichorList.forEach(ic => {
+        if (ic.active && Math.hypot(gx - ic.x, gy - ic.y) < 14) {
+          ic.active = false;
+          ichorWallet++;
+          score += 25;
+          playBeep(700 + Math.random() * 200, "sine", 0.08, 0.15);
+        }
+      });
+
+      // Twisteds AI
+      twisteds.forEach(tw => {
+        if (tw.ai === 3) {
+          if (Date.now() > tw.stunUntil) tw.ai = 0;
+        } else {
+          let distG = Math.hypot(gx - tw.x, gy - tw.y);
+          let detRange = isMoving ? 95 : 65;
+          if (tw.type === 0) detRange += 20;
+
+          if (distG < detRange) {
+            tw.ai = 2; // CHASE
+            tw.targetX = gx;
+            tw.targetY = gy;
+          } else if (tw.ai === 2 && distG > detRange + 45) {
+            tw.ai = 1; // INVESTIGATE
+            tw.timer = Date.now() + 3000;
+          }
+
+          if (tw.ai === 1 && Date.now() > tw.timer) tw.ai = 0;
+
+          let mDist = Math.hypot(tw.targetX - tw.x, tw.targetY - tw.y);
+          if (tw.ai === 0 && (mDist < 8 || Date.now() > tw.timer)) {
+            tw.targetX = 26 + Math.random() * 188;
+            tw.targetY = 70 + Math.random() * 190;
+            tw.timer = Date.now() + 3000 + Math.random() * 3000;
+          }
+
+          if (mDist > 2) {
+            let s = (tw.ai === 2 ? tw.speed * 1.25 : tw.speed * 0.75) * (dt / 16.6);
+            tw.x += ((tw.targetX - tw.x) / mDist) * s;
+            tw.y += ((tw.targetY - tw.y) / mDist) * s;
+          }
+
+          // Damage Gourdy
+          if (distG < 16 && Date.now() > invulnerableUntil) {
+            lives--;
+            invulnerableUntil = Date.now() + 1800;
+            playBeep(150, "sawtooth", 0.4, 0.4);
+            bannerText = "TWISTED STRUCK GOURDY!";
+            bannerUntil = Date.now() + 1500;
+            if (lives <= 0) {
+              highScore = Math.max(highScore, score);
+              gameState = STATE_GAME_OVER;
+            }
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // RENDERING
+    // =========================================================================
+    function render() {
+      ctx.fillStyle = "#081014";
+      ctx.fillRect(0, 0, 240, 320);
+
+      // Status Bar
+      ctx.fillStyle = "#0c121e";
+      ctx.fillRect(0, 0, 240, 25);
+      ctx.strokeStyle = "#283246";
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, 25); ctx.lineTo(240, 25); ctx.stroke();
+
+      ctx.fillStyle = "#00f0ff";
+      ctx.font = "bold 9px monospace";
+      ctx.fillText("< HOME", 10, 16);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 10px sans-serif";
+      ctx.fillText(gameState === STATE_TITLE ? "Gardenview" : (gameState === STATE_DANDY_SHOP ? "Dandy's Shop" : "Gardenview"), 90, 16);
+      ctx.fillStyle = "#22c55e";
+      ctx.fillText("USB [=]", 185, 16);
+
+      if (gameState === STATE_TITLE) {
+        renderTitleScreen();
+        return;
+      }
+      if (gameState === STATE_DANDY_SHOP) {
+        renderDandyShop();
+        return;
+      }
+      if (gameState === STATE_GAME_OVER) {
+        renderGameOver();
+        return;
+      }
+
+      // Playing Screen
+      renderPlaying();
+    }
+
+    function renderTitleScreen() {
+      // Header sub-bar
+      ctx.fillStyle = "#101422";
+      ctx.fillRect(0, 26, 240, 24);
+      ctx.fillStyle = "#00f0ff";
+      ctx.font = "bold 10px sans-serif";
+      ctx.fillText("< ARC", 12, 42);
+      ctx.fillText("DANDY'S WORLD", 130, 42);
+
+      drawGourdy(120, 95, -Math.PI / 2, false, true, false);
+
+      ctx.fillStyle = "#f97316";
+      ctx.font = "bold 18px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("GARDENVIEW", 120, 134);
+      ctx.fillStyle = "#eab308";
+      ctx.fillText("HALLOWEEN", 120, 154);
+
+      ctx.fillStyle = "#d81ff0";
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillText("GOURDY'S TOON STATS:", 120, 178);
+
+      ctx.fillStyle = "#9ca3af";
+      ctx.font = "9px sans-serif";
+      ctx.fillText("Speed:  ***** (Sugar Rush)", 120, 194);
+      ctx.fillText("Stamina: ****   Stealth: *", 120, 206);
+      ctx.fillText("Extract: ***    Skill Check: **", 120, 218);
+
+      ctx.fillStyle = "#00f0ff";
+      ctx.font = "bold 11px monospace";
+      ctx.fillText(`High Score: ${highScore}`, 120, 238);
+
+      // Start button
+      ctx.fillStyle = "#22c55e";
+      ctx.beginPath(); ctx.roundRect(25, 258, 190, 42, 6); ctx.fill();
+      ctx.strokeStyle = "#fff"; ctx.stroke();
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText("ENTER GARDENVIEW", 120, 284);
+      ctx.textAlign = "left";
+    }
+
+    function renderPlaying() {
+      // Header HUD
+      ctx.fillStyle = "#101422";
+      ctx.fillRect(0, 26, 240, 24);
+      ctx.strokeStyle = "#296570";
+      ctx.beginPath(); ctx.moveTo(0, 50); ctx.lineTo(240, 50); ctx.stroke();
+
+      ctx.fillStyle = "#00f0ff";
+      ctx.font = "bold 9px monospace";
+      ctx.fillText("< ARC", 10, 41);
+
+      ctx.fillStyle = "#eab308";
+      ctx.fillText(`F:${floorLevel}`, 52, 41);
+
+      ctx.fillStyle = "#d81ff0";
+      ctx.fillText(`ICHOR:${ichorWallet}`, 80, 41);
+
+      ctx.fillStyle = "#fff";
+      ctx.fillText(`00${score}`, 134, 41);
+
+      // Hearts
+      for (let i = 0; i < 3; i++) {
+        let hx = 184 + i * 14;
+        ctx.fillStyle = i < lives ? "#f97316" : "#374151";
+        ctx.beginPath(); ctx.arc(hx, 38, 5, 0, Math.PI * 2); ctx.fill();
+        if (i < lives) {
+          ctx.fillStyle = "#22c55e";
+          ctx.fillRect(hx - 1, 32, 2, 2);
+        }
+      }
+
+      // Arena frame
+      ctx.strokeStyle = "#212433";
+      ctx.strokeRect(6, 52, 228, 230);
+
+      // Elevator Door
+      ctx.fillStyle = elevatorUnlocked ? "#064e3b" : "#1f2937";
+      ctx.strokeStyle = elevatorUnlocked ? "#22c55e" : "#6b7280";
+      ctx.beginPath(); ctx.roundRect(97, 56, 46, 14, 3); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = elevatorUnlocked ? "#22c55e" : "#eab308";
+      ctx.font = "bold 8px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(elevatorUnlocked ? "OPEN" : "ELEVATOR", 120, 66);
+
+      // Obstacles
+      obstacles.forEach(ob => {
+        ctx.fillStyle = "#181c24";
+        ctx.strokeStyle = "#4b5563";
+        ctx.beginPath(); ctx.roundRect(ob.x, ob.y, ob.w, ob.h, 4); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#111827";
+        ctx.fillRect(ob.x + 3, ob.y + 3, ob.w - 6, ob.h - 6);
+      });
+
+      // Trick Buckets
+      buckets.forEach(b => {
+        if (b.opened) {
+          ctx.strokeStyle = "#6b7280";
+          ctx.beginPath(); ctx.arc(b.x, b.y, 7, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = "#6b7280"; ctx.font = "7px sans-serif";
+          ctx.fillText("EMPTY", b.x, b.y + 12);
+        } else {
+          ctx.fillStyle = "#f97316";
+          ctx.strokeStyle = "#eab308";
+          ctx.beginPath(); ctx.arc(b.x, b.y, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = "#000";
+          ctx.fillRect(b.x - 3, b.y - 1, 2, 2); ctx.fillRect(b.x + 1, b.y - 1, 2, 2);
+          ctx.fillStyle = "#eab308"; ctx.font = "bold 7px sans-serif";
+          ctx.fillText("TREAT", b.x, b.y + 13);
+        }
+      });
+
+      // Machines
+      machines.forEach((m, idx) => {
+        ctx.fillStyle = "#181c24";
+        ctx.strokeStyle = m.completed ? "#22c55e" : "#06b6d4";
+        ctx.beginPath(); ctx.roundRect(m.x - 16, m.y - 14, 32, 28, 4); ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = m.completed ? "#052e16" : "#082f49";
+        ctx.fillRect(m.x - 12, m.y - 10, 24, 14);
+
+        ctx.fillStyle = m.completed ? "#22c55e" : "#00f0ff";
+        ctx.font = "bold 8px monospace";
+        ctx.fillText(`M${idx + 1}:${Math.floor(m.progress)}%`, m.x, m.y - 1);
+
+        ctx.fillStyle = m.completed ? "#22c55e" : (m.isExtracting ? "#eab308" : "#ef4444");
+        ctx.beginPath(); ctx.arc(m.x, m.y + 8, 3, 0, Math.PI * 2); ctx.fill();
+
+        // Skill check dial
+        if (m.skillCheckActive) {
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(m.x, m.y, 20, 0, Math.PI * 2); ctx.stroke();
+
+          ctx.strokeStyle = "#22c55e";
+          ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(m.x, m.y, 20, m.hitZoneStart, m.hitZoneStart + m.hitZoneWidth); ctx.stroke();
+
+          ctx.strokeStyle = "#eab308";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(m.x, m.y);
+          ctx.lineTo(m.x + Math.cos(m.needleAngle) * 20, m.y + Math.sin(m.needleAngle) * 20);
+          ctx.stroke();
+
+          ctx.fillStyle = "#eab308";
+          ctx.font = "bold 8px sans-serif";
+          ctx.fillText("TAP!", m.x, m.y - 24);
+        }
+      });
+
+      // Ichor Drops
+      ichorList.forEach(ic => {
+        if (ic.active) {
+          ctx.fillStyle = "rgba(168, 85, 247, 0.3)";
+          ctx.beginPath(); ctx.arc(ic.x, ic.y, 8, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#d81ff0";
+          ctx.beginPath(); ctx.arc(ic.x, ic.y, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#fff";
+          ctx.beginPath(); ctx.arc(ic.x, ic.y, 2, 0, Math.PI * 2); ctx.fill();
+        }
+      });
+
+      // Twisteds
+      twisteds.forEach(tw => {
+        drawTwisted(tw);
+      });
+
+      // Gourdy Player
+      let blink = Date.now() < invulnerableUntil && Math.floor(Date.now() / 150) % 2 === 0;
+      drawGourdy(gx, gy, facingAngle, isMoving, Date.now() < sugarRushUntil, blink);
+
+      // Event Banner
+      if (Date.now() < bannerUntil) {
+        ctx.fillStyle = "#2a150a";
+        ctx.strokeStyle = "#eab308";
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.roundRect(38, 73, 164, 20, 4); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 9px sans-serif";
+        ctx.fillText(bannerText, 120, 86);
+      }
+
+      // Bottom Toolbar
+      ctx.fillStyle = "#12161e";
+      ctx.fillRect(0, 284, 240, 36);
+      ctx.strokeStyle = "#283246";
+      ctx.beginPath(); ctx.moveTo(0, 284); ctx.lineTo(240, 284); ctx.stroke();
+
+      // Flashlight Stun Button
+      let stunReady = flashlightCharges > 0 && Date.now() > flashlightCooldown;
+      ctx.fillStyle = stunReady ? "#eab308" : "#374151";
+      ctx.beginPath(); ctx.arc(26, 302, 16, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#fff"; ctx.stroke();
+      ctx.fillStyle = stunReady ? "#000" : "#9ca3af";
+      ctx.font = "bold 7px sans-serif";
+      ctx.fillText(`STUN(${flashlightCharges})`, 26, 304);
+
+      // Stamina Bar
+      ctx.fillStyle = "#9ca3af";
+      ctx.font = "7px sans-serif";
+      ctx.fillText("STAMINA", 120, 292);
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 1;
+      ctx.strokeRect(58, 297, 124, 8);
+      ctx.fillStyle = stamina > 30 ? "#22c55e" : "#ef4444";
+      ctx.fillRect(59, 298, (stamina * 122) / 100, 6);
+
+      // Sugar Rush Button
+      let rushReady = candiesStocked > 0 || Date.now() < sugarRushUntil;
+      ctx.fillStyle = Date.now() < sugarRushUntil ? "#d81ff0" : (rushReady ? "#f97316" : "#374151");
+      ctx.beginPath(); ctx.arc(214, 302, 16, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#fff"; ctx.stroke();
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 7px sans-serif";
+      ctx.fillText(Date.now() < sugarRushUntil ? "BOOST!" : `RUSH(${candiesStocked})`, 214, 304);
+
+      ctx.textAlign = "left";
+    }
+
+    function drawGourdy(cx, cy, angle, walking, sugarRush, blink) {
+      if (blink) return;
+
+      if (sugarRush) {
+        ctx.strokeStyle = "#eab308"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(cx, cy, 14, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = "#d81ff0";
+        ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2); ctx.stroke();
+      }
+
+      // Vine limbs
+      let leg1 = walking ? Math.sin(walkAnimPhase) * 3 : 0;
+      let leg2 = walking ? -Math.sin(walkAnimPhase) * 3 : 0;
+      ctx.fillStyle = "#22c55e";
+      ctx.fillRect(cx - 5, cy + 9 + leg1, 3, 4);
+      ctx.fillRect(cx + 2, cy + 9 + leg2, 3, 4);
+
+      // Lobes
+      ctx.fillStyle = "#f97316";
+      ctx.beginPath(); ctx.arc(cx - 4, cy, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + 4, cy, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fb923c";
+      ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2); ctx.fill();
+
+      // Stem & Leaf
+      ctx.fillStyle = "#69a121";
+      ctx.fillRect(cx - 1, cy - 11, 3, 4);
+      ctx.fillStyle = "#22c55e";
+      ctx.beginPath(); ctx.ellipse(cx + 4, cy - 10, 4, 2, 0, 0, Math.PI * 2); ctx.fill();
+
+      // Eyes & tracking pupils
+      ctx.fillStyle = "#000";
+      ctx.fillRect(cx - 5, cy - 4, 3, 3);
+      ctx.fillRect(cx + 2, cy - 4, 3, 3);
+      let ldx = Math.max(-1, Math.min(1, Math.cos(angle) * 1.5));
+      let ldy = Math.max(-1, Math.min(1, Math.sin(angle) * 1.5));
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(cx - 4 + ldx, cy - 3 + ldy, 1.5, 1.5);
+      ctx.fillRect(cx + 3 + ldx, cy - 3 + ldy, 1.5, 1.5);
+
+      // Grin & fangs
+      ctx.fillStyle = "#000";
+      ctx.fillRect(cx - 4, cy + 3, 9, 2);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(cx - 2, cy + 3, 1.5, 1.5);
+      ctx.fillRect(cx + 2, cy + 3, 1.5, 1.5);
+    }
+
+    function drawTwisted(tw) {
+      let cx = tw.x, cy = tw.y;
+
+      if (tw.ai === 2) {
+        ctx.fillStyle = "#ef4444"; ctx.font = "bold 12px sans-serif";
+        ctx.textAlign = "center"; ctx.fillText("!", cx, cy - 16);
+      } else if (tw.ai === 1) {
+        ctx.fillStyle = "#eab308"; ctx.font = "bold 12px sans-serif";
+        ctx.textAlign = "center"; ctx.fillText("?", cx, cy - 16);
+      } else if (tw.ai === 3) {
+        ctx.fillStyle = "#eab308"; ctx.font = "bold 10px sans-serif";
+        ctx.textAlign = "center"; ctx.fillText("***", cx, cy - 16);
+      }
+
+      // Tendrils
+      ctx.fillStyle = "#000";
+      ctx.fillRect(cx - 7, cy + 7, 2, 6);
+      ctx.fillRect(cx - 2, cy + 8, 2, 7);
+      ctx.fillRect(cx + 3, cy + 7, 2, 6);
+
+      // Inky body
+      ctx.fillStyle = "#111827";
+      ctx.beginPath(); ctx.arc(cx, cy, 9, 0, Math.PI * 2); ctx.fill();
+
+      if (tw.type === 0) {
+        // Pumpkin petals
+        ctx.fillStyle = "#f97316";
+        for (let p = 0; p < 6; p++) {
+          let a = p * 1.047;
+          ctx.beginPath(); ctx.arc(cx + Math.cos(a) * 11, cy + Math.sin(a) * 11, 3, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+
+      // Eyes
+      ctx.fillStyle = tw.ai === 2 ? "#ef4444" : (tw.ai === 1 ? "#eab308" : "#fff");
+      ctx.fillRect(cx - 5, cy - 2, 3, 3);
+      ctx.fillRect(cx + 2, cy - 2, 3, 3);
+      ctx.textAlign = "left";
+    }
+
+    function renderDandyShop() {
+      ctx.fillStyle = "#0c121e";
+      ctx.fillRect(0, 26, 240, 24);
+      ctx.fillStyle = "#eab308";
+      ctx.font = "bold 11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("DANDY'S ELEVATOR SHOP", 120, 42);
+
+      // Dandy flower
+      let dx = 120, dy = 85;
+      ctx.fillStyle = "#eab308";
+      for (let i = 0; i < 6; i++) {
+        let a = i * 1.047;
+        ctx.beginPath(); ctx.arc(dx + Math.cos(a) * 16, dy + Math.sin(a) * 16, 8, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(dx, dy, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#000";
+      ctx.fillRect(dx - 4, dy - 2, 2, 2); ctx.fillRect(dx + 2, dy - 2, 2, 2);
+      ctx.fillRect(dx - 5, dy + 4, 10, 1.5);
+
+      // Witch hat
+      ctx.fillStyle = "#3b0764";
+      ctx.fillRect(dx - 14, dy - 18, 28, 4);
+      ctx.fillRect(dx - 8, dy - 28, 16, 10);
+      ctx.fillStyle = "#f97316"; ctx.fillRect(dx - 8, dy - 19, 16, 2);
+
+      ctx.fillStyle = "#fff"; ctx.font = "10px sans-serif";
+      ctx.fillText('"Happy Halloween, Gourdy!"', 120, 116);
+      ctx.fillStyle = "#d81ff0"; ctx.font = "bold 11px monospace";
+      ctx.fillText(`Your Ichor: ${ichorWallet}`, 120, 132);
+
+      // Items
+      const items = [
+        { name: "1. CHOCOLATE BAR (+1 Heart)", cost: "Cost: 8 Ichor [BUY]", col: ichorWallet >= 8 ? "#22c55e" : "#4b5563" },
+        { name: "2. CANDY CORN (+1 Speed Boost)", cost: "Cost: 5 Ichor [BUY]", col: ichorWallet >= 5 ? "#f97316" : "#4b5563" },
+        { name: "3. FLASHLIGHT BATTERY (+2 Stun)", cost: "Cost: 6 Ichor [BUY]", col: ichorWallet >= 6 ? "#eab308" : "#4b5563" }
+      ];
+      items.forEach((it, i) => {
+        let iy = 150 + i * 40;
+        ctx.fillStyle = "#181c24";
+        ctx.strokeStyle = it.col;
+        ctx.beginPath(); ctx.roundRect(14, iy, 212, 34, 4); ctx.fill(); ctx.stroke();
+        ctx.textAlign = "left";
+        ctx.fillStyle = "#fff"; ctx.font = "9px sans-serif";
+        ctx.fillText(it.name, 22, iy + 14);
+        ctx.fillStyle = "#d81ff0"; ctx.font = "8px monospace";
+        ctx.fillText(it.cost, 22, iy + 26);
+      });
+
+      // Continue button
+      ctx.fillStyle = "#00f0ff";
+      ctx.beginPath(); ctx.roundRect(25, 274, 190, 36, 6); ctx.fill();
+      ctx.strokeStyle = "#fff"; ctx.stroke();
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 13px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`ENTER FLOOR ${floorLevel + 1} >`, 120, 296);
+      ctx.textAlign = "left";
+    }
+
+    function renderGameOver() {
+      ctx.fillStyle = "#450a0a";
+      ctx.strokeStyle = "#ef4444";
+      ctx.beginPath(); ctx.roundRect(25, 120, 190, 80, 6); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#ef4444"; ctx.font = "bold 13px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("TWISTED CAUGHT YOU!", 120, 145);
+      ctx.fillStyle = "#fff"; ctx.font = "10px sans-serif";
+      ctx.fillText(`Floor Reached: ${floorLevel}`, 120, 165);
+      ctx.fillStyle = "#9ca3af";
+      ctx.fillText("Click screen to play again", 120, 182);
+      ctx.textAlign = "left";
+    }
+
+    // Launch!
+    resetGame();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
