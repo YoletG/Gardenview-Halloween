@@ -422,24 +422,70 @@ def render_gourdy():
     draw.ellipse([tx - S(6), ty - S(3), tx - S(1), ty + S(2)], fill=C_RED)
     draw.ellipse([tx + S(1), ty - S(3), tx + S(6), ty + S(2)], fill=C_RED)
     
-    # Gourdy Holloway (Player)
+    # Gourdy Holloway (Player - Canonical Dandy's World Design)
     gx, gy = S(85), S(185)
-    # Vine limbs
-    draw.line([(gx - S(8), gy + S(6)), (gx - S(12), gy + S(16))], fill=(105, 154, 33), width=SCALE)
-    draw.line([(gx + S(8), gy + S(6)), (gx + S(12), gy + S(16))], fill=(105, 154, 33), width=SCALE)
-    # Multi-lobed Pumpkin Body
-    draw.ellipse([gx - S(13), gy - S(10), gx, gy + S(10)], fill=(249, 115, 22))
-    draw.ellipse([gx, gy - S(10), gx + S(13), gy + S(10)], fill=(249, 115, 22))
-    draw.ellipse([gx - S(8), gy - S(11), gx + S(8), gy + S(11)], fill=(251, 146, 60))
-    # Stem & Leaf
-    draw.rectangle([gx - S(2), gy - S(17), gx + S(2), gy - S(11)], fill=(105, 154, 33))
-    draw.ellipse([gx + S(2), gy - S(17), gx + S(9), gy - S(13)], fill=(34, 197, 94))
-    # Eyes & Smile
-    draw.rectangle([gx - S(6), gy - S(3), gx - S(1), gy + S(2)], fill=(15, 15, 15))
-    draw.rectangle([gx + S(2), gy - S(3), gx + S(7), gy + S(2)], fill=(15, 15, 15))
-    draw.point((gx - S(3), gy - S(1)), fill=C_WHITE)
-    draw.point((gx + S(5), gy - S(1)), fill=C_WHITE)
-    draw.line([(gx - S(6), gy + S(5)), (gx + S(6), gy + S(5))], fill=(15, 15, 15), width=SCALE)
+    
+    # 1. Swishing Green Vine Tail with Leaf Tip
+    draw.line([(gx, gy + S(6)), (gx - S(7), gy + S(8))], fill=(21, 128, 61), width=SCALE)
+    draw.line([(gx - S(7), gy + S(8)), (gx - S(14), gy + S(4))], fill=(34, 197, 94), width=SCALE)
+    draw.polygon([(gx - S(14), gy + S(4)), (gx - S(18), gy + S(2)), (gx - S(17), gy + S(6))], fill=(34, 197, 94))
+    
+    # 2. Green Vine Legs with Vine Stripes
+    # Left leg
+    draw.rectangle([gx - S(5), gy + S(10), gx - S(2), gy + S(16)], fill=(34, 197, 94))
+    draw.line([(gx - S(5), gy + S(12)), (gx - S(2), gy + S(12))], fill=(21, 128, 61), width=1)
+    draw.rectangle([gx - S(6), gy + S(15), gx - S(2), gy + S(17)], fill=(21, 128, 61))
+    # Right leg
+    draw.rectangle([gx + S(2), gy + S(10), gx + S(5), gy + S(16)], fill=(34, 197, 94))
+    draw.line([(gx + S(2), gy + S(12)), (gx + S(5), gy + S(12))], fill=(21, 128, 61), width=1)
+    draw.rectangle([gx + S(2), gy + S(15), gx + S(6), gy + S(17)], fill=(21, 128, 61))
+    
+    # 3. Round Orange Pumpkin Torso with Ribbing
+    draw.ellipse([gx - S(6), gy, gx + S(6), gy + S(12)], fill=(249, 115, 22))
+    draw.line([(gx - S(2), gy + S(1)), (gx - S(2), gy + S(11))], fill=(234, 88, 12), width=1)
+    draw.line([(gx + S(2), gy + S(1)), (gx + S(2), gy + S(11))], fill=(234, 88, 12), width=1)
+    
+    # 4. Green Vine Arms & Large Orange Paw Hands with Claws
+    # Left Arm & Paw
+    draw.line([(gx - S(4), gy + S(5)), (gx - S(9), gy + S(6))], fill=(34, 197, 94), width=SCALE)
+    draw.ellipse([gx - S(12), gy + S(3), gx - S(6), gy + S(9)], fill=(251, 146, 60))
+    draw.point((gx - S(11), gy + S(4)), fill=(21, 128, 61))
+    draw.point((gx - S(11), gy + S(7)), fill=(21, 128, 61))
+    draw.point((gx - S(9), gy + S(6)), fill=(154, 52, 18))
+    # Right Arm & Paw
+    draw.line([(gx + S(4), gy + S(5)), (gx + S(9), gy + S(6))], fill=(34, 197, 94), width=SCALE)
+    draw.ellipse([gx + S(6), gy + S(3), gx + S(12), gy + S(9)], fill=(251, 146, 60))
+    draw.point((gx + S(11), gy + S(4)), fill=(21, 128, 61))
+    draw.point((gx + S(11), gy + S(7)), fill=(21, 128, 61))
+    draw.point((gx + S(9), gy + S(6)), fill=(154, 52, 18))
+    
+    # 5. Giant Pumpkin Head (3 Lobes)
+    draw.ellipse([gx - S(13), gy - S(12), gx, gy + S(6)], fill=(234, 88, 12))
+    draw.ellipse([gx, gy - S(12), gx + S(13), gy + S(6)], fill=(234, 88, 12))
+    draw.ellipse([gx - S(8), gy - S(13), gx + S(8), gy + S(7)], fill=(249, 115, 22))
+    
+    # Vertical rib lines
+    draw.line([(gx - S(3), gy - S(10)), (gx - S(3), gy + S(5))], fill=(194, 65, 12), width=1)
+    draw.line([(gx + S(3), gy - S(10)), (gx + S(3), gy + S(5))], fill=(194, 65, 12), width=1)
+    
+    # Distinct carved horizontal lid seam across upper forehead
+    draw.line([(gx - S(7), gy - S(5)), (gx + S(7), gy - S(5))], fill=(154, 52, 18), width=SCALE)
+    
+    # Woody brown stem & curled green leaf
+    draw.rectangle([gx - S(2), gy - S(18), gx + S(2), gy - S(12)], fill=(120, 53, 15))
+    draw.ellipse([gx + S(2), gy - S(18), gx + S(9), gy - S(14)], fill=(34, 197, 94))
+    
+    # Carved Black Eye Sockets with Tracking White Pupils
+    draw.rectangle([gx - S(6), gy - S(6), gx - S(1), gy - S(1)], fill=(10, 10, 10))
+    draw.rectangle([gx + S(2), gy - S(6), gx + S(7), gy - S(1)], fill=(10, 10, 10))
+    draw.point((gx - S(3), gy - S(3)), fill=C_WHITE)
+    draw.point((gx + S(5), gy - S(3)), fill=C_WHITE)
+    
+    # Mischievous Fanged Grin
+    draw.rectangle([gx - S(6), gy + S(1), gx + S(6), gy + S(4)], fill=(10, 10, 10))
+    draw.point((gx - S(3), gy + S(1)), fill=C_WHITE)
+    draw.point((gx + S(3), gy + S(1)), fill=C_WHITE)
+    draw.point((gx, gy + S(2)), fill=C_WHITE)
     
     # Bottom Controls Toolbar (y: 284..320)
     draw.rectangle([0, S(284), W, H], fill=C_TOOLBAR)

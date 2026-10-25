@@ -294,46 +294,104 @@ private:
 
         const uint16_t bg = 0x0842;
 
-        // 1. Sugar Rush Golden Halo
+        // 1. Sugar Rush Golden / Magenta Aura
         if (sugarRush) {
-            UI_AA::drawCircle(tft, cx, cy, 14, TFT_YELLOW, bg);
-            UI_AA::drawCircle(tft, cx, cy, 15, TFT_MAGENTA, bg);
+            UI_AA::drawCircle(tft, cx, cy + 2, 16, TFT_YELLOW, bg);
+            UI_AA::drawCircle(tft, cx, cy + 2, 17, TFT_MAGENTA, bg);
         }
 
-        // 2. Green Vine Legs
-        int legOff1 = walking ? (int)(sinf(walkAnimPhase) * 3.0f) : 0;
-        int legOff2 = walking ? (int)(-sinf(walkAnimPhase) * 3.0f) : 0;
-        tft.fillRect(cx - 5, cy + 9 + legOff1, 3, 4, 0x24C5);
-        tft.fillRect(cx + 2, cy + 9 + legOff2, 3, 4, 0x24C5);
+        // 2. Long Green Vine Tail with Leaf Tip (Swishes behind movement direction)
+        float tailAngle = angle + 3.14159f;
+        float tailWag = walking ? sinf(walkAnimPhase) * 4.0f : 0.0f;
+        int tailMidX = cx + (int)(cosf(tailAngle) * 7.0f);
+        int tailMidY = cy + 6 + (int)(sinf(tailAngle) * 4.0f + tailWag);
+        int tailTipX = cx + (int)(cosf(tailAngle) * 14.0f);
+        int tailTipY = cy + 4 + (int)(sinf(tailAngle) * 7.0f + tailWag * 1.5f);
 
-        // 3. Composite Anti-Aliased Pumpkin Head
-        UI_AA::fillCircle(tft, cx - 4, cy, 7, 0xFA40, bg);
-        UI_AA::fillCircle(tft, cx + 4, cy, 7, 0xFA40, bg);
-        UI_AA::fillCircle(tft, cx, cy, 8, 0xFD20, bg);
+        tft.drawLine(cx, cy + 6, tailMidX, tailMidY, 0x1462); // Darker green base
+        tft.drawLine(tailMidX, tailMidY, tailTipX, tailTipY, 0x24C5); // Bright green vine
+        tft.fillTriangle(tailTipX, tailTipY - 2, tailTipX + 3, tailTipY, tailTipX, tailTipY + 2, 0x47E0); // Leaf tip
 
-        // Crease lines & forehead seam
-        tft.drawFastVLine(cx - 3, cy - 6, 12, 0xD280);
-        tft.drawFastVLine(cx + 3, cy - 6, 12, 0xD280);
-        tft.drawFastHLine(cx - 6, cy - 2, 13, 0xB200);
+        // 3. Green Vine Legs with Vine Stripes & Running Animation
+        int legOff1 = walking ? (int)(sinf(walkAnimPhase) * 3.5f) : 0;
+        int legOff2 = walking ? (int)(-sinf(walkAnimPhase) * 3.5f) : 0;
 
-        // Stem & Leaf
-        tft.fillRect(cx - 1, cy - 11, 3, 4, 0x69A1);
-        tft.fillRect(cx + 2, cy - 11, 4, 2, 0x24C5);
+        // Left Leg
+        tft.fillRect(cx - 5, cy + 10 + legOff1, 3, 6, 0x24C5);
+        tft.drawFastHLine(cx - 5, cy + 12 + legOff1, 3, 0x1462); // Vine stripe
+        tft.fillRect(cx - 6, cy + 15 + legOff1, 4, 2, 0x1462); // Vine claw foot
 
-        // Carved Eyes & Tracking Pupils
-        tft.fillRect(cx - 5, cy - 4, 3, 3, TFT_BLACK);
-        tft.fillRect(cx + 2, cy - 4, 3, 3, TFT_BLACK);
+        // Right Leg
+        tft.fillRect(cx + 2, cy + 10 + legOff2, 3, 6, 0x24C5);
+        tft.drawFastHLine(cx + 2, cy + 12 + legOff2, 3, 0x1462);
+        tft.fillRect(cx + 2, cy + 15 + legOff2, 4, 2, 0x1462);
+
+        // 4. Round Orange Pumpkin Torso with Ribbing
+        UI_AA::fillCircle(tft, cx, cy + 6, 6, 0xFA40, bg);
+        tft.drawFastVLine(cx - 2, cy + 2, 8, 0xD280);
+        tft.drawFastVLine(cx + 2, cy + 2, 8, 0xD280);
+
+        // 5. Green Vine Arms & Large Orange Paw Hands with Claws
+        int armSwing1 = walking ? (int)(cosf(walkAnimPhase) * 2.5f) : 0;
+        int armSwing2 = walking ? (int)(-cosf(walkAnimPhase) * 2.5f) : 0;
+
+        // Left Arm & Paw
+        int paw1X = cx - 9 + armSwing1;
+        int paw1Y = cy + 6 - armSwing1;
+        tft.drawLine(cx - 4, cy + 5, paw1X, paw1Y, 0x24C5);
+        UI_AA::fillCircle(tft, paw1X, paw1Y, 3, 0xFD20, bg);
+        tft.drawPixel(paw1X - 2, paw1Y - 1, 0x1462); // Claws
+        tft.drawPixel(paw1X - 1, paw1Y - 2, 0x1462);
+        tft.drawPixel(paw1X, paw1Y, 0x9300); // Paw pad center
+
+        // Right Arm & Paw
+        int paw2X = cx + 9 + armSwing2;
+        int paw2Y = cy + 6 + armSwing2;
+        tft.drawLine(cx + 4, cy + 5, paw2X, paw2Y, 0x24C5);
+        UI_AA::fillCircle(tft, paw2X, paw2Y, 3, 0xFD20, bg);
+        tft.drawPixel(paw2X + 2, paw2Y - 1, 0x1462);
+        tft.drawPixel(paw2X + 1, paw2Y - 2, 0x1462);
+        tft.drawPixel(paw2X, paw2Y, 0x9300);
+
+        // 6. Giant Jack-o'-Lantern Pumpkin Head (Composite Lobes)
+        UI_AA::fillCircle(tft, cx - 4, cy - 2, 7, 0xFA40, bg);
+        UI_AA::fillCircle(tft, cx + 4, cy - 2, 7, 0xFA40, bg);
+        UI_AA::fillCircle(tft, cx, cy - 2, 8, 0xFD20, bg);
+
+        // Vertical rib grooves
+        tft.drawFastVLine(cx - 3, cy - 8, 12, 0xD280);
+        tft.drawFastVLine(cx + 3, cy - 8, 12, 0xD280);
+
+        // Distinct carved horizontal lid seam across upper forehead
+        tft.drawFastHLine(cx - 6, cy - 4, 13, 0x9260);
+        tft.drawPixel(cx - 2, cy - 5, 0x9260);
+        tft.drawPixel(cx + 2, cy - 5, 0x9260);
+
+        // Woody brown stem on top of lid
+        tft.fillRect(cx - 1, cy - 13, 3, 4, 0x69A1);
+        tft.drawPixel(cx - 1, cy - 14, 0x82C2);
+
+        // Curled green leaf attached to stem
+        tft.fillRect(cx + 2, cy - 13, 4, 2, 0x24C5);
+        tft.drawPixel(cx + 4, cy - 14, 0x47E0);
+        tft.drawPixel(cx + 6, cy - 12, 0x24C5);
+
+        // 7. Carved Hollow Black Eye Sockets with Tracking White Pupils
+        tft.fillRect(cx - 5, cy - 6, 3, 3, TFT_BLACK);
+        tft.fillRect(cx + 2, cy - 6, 3, 3, TFT_BLACK);
         int lookDx = (int)constrain(cosf(angle) * 1.5f, -1.0f, 1.0f);
         int lookDy = (int)constrain(sinf(angle) * 1.5f, -1.0f, 1.0f);
-        tft.drawPixel(cx - 4 + lookDx, cy - 3 + lookDy, TFT_WHITE);
-        tft.drawPixel(cx + 3 + lookDx, cy - 3 + lookDy, TFT_WHITE);
+        tft.drawPixel(cx - 4 + lookDx, cy - 5 + lookDy, TFT_WHITE);
+        tft.drawPixel(cx + 3 + lookDx, cy - 5 + lookDy, TFT_WHITE);
 
-        // Fanged Grin
-        tft.drawFastHLine(cx - 4, cy + 3, 9, TFT_BLACK);
-        tft.drawPixel(cx - 3, cy + 4, TFT_BLACK);
-        tft.drawPixel(cx + 3, cy + 4, TFT_BLACK);
-        tft.drawPixel(cx - 2, cy + 3, TFT_WHITE);
-        tft.drawPixel(cx + 2, cy + 3, TFT_WHITE);
+        // 8. Mischievous Fanged Grin
+        tft.drawFastHLine(cx - 4, cy, 9, TFT_BLACK);
+        tft.drawPixel(cx - 3, cy + 1, TFT_BLACK);
+        tft.drawPixel(cx + 3, cy + 1, TFT_BLACK);
+        // Pointed white fangs
+        tft.drawPixel(cx - 2, cy, TFT_WHITE);
+        tft.drawPixel(cx + 2, cy, TFT_WHITE);
+        tft.drawPixel(cx, cy + 1, TFT_WHITE);
     }
 
     void drawTwisted(TFT_eSPI& tft, const TwistedEnemy& tw) {
@@ -1072,7 +1130,7 @@ public:
         // DIFFERENTIAL 60FPS RENDERING
         // =====================================================================
         // Erase previous Gourdy
-        tft.fillRect((int)prevGx - 12, (int)prevGy - 14, 25, 28, 0x0842);
+        tft.fillRect((int)prevGx - 16, (int)prevGy - 16, 32, 36, 0x0842);
 
         // Erase previous Twisteds
         for (int i = 0; i < activeTwisteds; i++) {

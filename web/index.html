@@ -905,49 +905,138 @@
     function drawGourdy(cx, cy, angle, walking, sugarRush, blink) {
       if (blink) return;
 
+      // 1. Sugar Rush Golden & Magenta Aura
       if (sugarRush) {
         ctx.strokeStyle = "#eab308"; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(cx, cy, 14, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy + 2, 16, 0, Math.PI * 2); ctx.stroke();
         ctx.strokeStyle = "#d81ff0";
-        ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy + 2, 18, 0, Math.PI * 2); ctx.stroke();
       }
 
-      // Vine limbs
-      let leg1 = walking ? Math.sin(walkAnimPhase) * 3 : 0;
-      let leg2 = walking ? -Math.sin(walkAnimPhase) * 3 : 0;
-      ctx.fillStyle = "#22c55e";
-      ctx.fillRect(cx - 5, cy + 9 + leg1, 3, 4);
-      ctx.fillRect(cx + 2, cy + 9 + leg2, 3, 4);
+      // 2. Long Green Vine Tail with Leaf Tip (Swishes behind movement direction)
+      let tailAngle = angle + Math.PI;
+      let tailWag = walking ? Math.sin(walkAnimPhase) * 4 : 0;
+      let tailMidX = cx + Math.cos(tailAngle) * 7;
+      let tailMidY = cy + 6 + Math.sin(tailAngle) * 4 + tailWag;
+      let tailTipX = cx + Math.cos(tailAngle) * 14;
+      let tailTipY = cy + 4 + Math.sin(tailAngle) * 7 + tailWag * 1.5;
 
-      // Lobes
+      ctx.strokeStyle = "#15803d"; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + 6);
+      ctx.quadraticCurveTo(tailMidX, tailMidY, tailTipX, tailTipY);
+      ctx.stroke();
+
+      // Tail Leaf
+      ctx.fillStyle = "#22c55e";
+      ctx.beginPath();
+      ctx.ellipse(tailTipX, tailTipY, 3.5, 2, tailAngle, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3. Green Vine Legs with Vine Stripes & Running Step Animation
+      let leg1 = walking ? Math.sin(walkAnimPhase) * 3.5 : 0;
+      let leg2 = walking ? -Math.sin(walkAnimPhase) * 3.5 : 0;
+
+      // Left Leg
+      ctx.fillStyle = "#22c55e";
+      ctx.fillRect(cx - 5, cy + 10 + leg1, 3, 6);
+      ctx.fillStyle = "#15803d"; // Vine stripe
+      ctx.fillRect(cx - 5, cy + 12 + leg1, 3, 1.5);
+      ctx.fillRect(cx - 6, cy + 15 + leg1, 4, 2); // Claw foot
+
+      // Right Leg
+      ctx.fillStyle = "#22c55e";
+      ctx.fillRect(cx + 2, cy + 10 + leg2, 3, 6);
+      ctx.fillStyle = "#15803d";
+      ctx.fillRect(cx + 2, cy + 12 + leg2, 3, 1.5);
+      ctx.fillRect(cx + 2, cy + 15 + leg2, 4, 2);
+
+      // 4. Round Orange Pumpkin Torso with Ribbing
       ctx.fillStyle = "#f97316";
-      ctx.beginPath(); ctx.arc(cx - 4, cy, 7, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(cx + 4, cy, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy + 6, 6.5, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#ea580c"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - 2, cy + 1); ctx.lineTo(cx - 2, cy + 11);
+      ctx.moveTo(cx + 2, cy + 1); ctx.lineTo(cx + 2, cy + 11);
+      ctx.stroke();
+
+      // 5. Green Vine Arms & Large Orange Paw Hands with Claws
+      let armSwing1 = walking ? Math.cos(walkAnimPhase) * 2.5 : 0;
+      let armSwing2 = walking ? -Math.cos(walkAnimPhase) * 2.5 : 0;
+
+      // Left Arm & Paw
+      let paw1X = cx - 9 + armSwing1;
+      let paw1Y = cy + 6 - armSwing1;
+      ctx.strokeStyle = "#22c55e"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(cx - 4, cy + 5); ctx.lineTo(paw1X, paw1Y); ctx.stroke();
+      ctx.fillStyle = "#fb923c"; // Orange paw
+      ctx.beginPath(); ctx.arc(paw1X, paw1Y, 3.2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#15803d"; // Claws
+      ctx.fillRect(paw1X - 2.5, paw1Y - 1.5, 1.5, 1.5);
+      ctx.fillRect(paw1X - 1.5, paw1Y - 2.5, 1.5, 1.5);
+      ctx.fillStyle = "#9a3412"; // Paw pad
+      ctx.fillRect(paw1X - 1, paw1Y - 1, 1.5, 1.5);
+
+      // Right Arm & Paw
+      let paw2X = cx + 9 + armSwing2;
+      let paw2Y = cy + 6 + armSwing2;
+      ctx.strokeStyle = "#22c55e"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(cx + 4, cy + 5); ctx.lineTo(paw2X, paw2Y); ctx.stroke();
       ctx.fillStyle = "#fb923c";
-      ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(paw2X, paw2Y, 3.2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#15803d";
+      ctx.fillRect(paw2X + 1.5, paw2Y - 1.5, 1.5, 1.5);
+      ctx.fillRect(paw2X + 0.5, paw2Y - 2.5, 1.5, 1.5);
+      ctx.fillStyle = "#9a3412";
+      ctx.fillRect(paw2X - 0.5, paw2Y - 1, 1.5, 1.5);
 
-      // Stem & Leaf
-      ctx.fillStyle = "#69a121";
-      ctx.fillRect(cx - 1, cy - 11, 3, 4);
+      // 6. Giant Jack-o'-Lantern Pumpkin Head
+      // 3 Lobes
+      ctx.fillStyle = "#ea580c";
+      ctx.beginPath(); ctx.arc(cx - 4, cy - 2, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + 4, cy - 2, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#f97316";
+      ctx.beginPath(); ctx.arc(cx, cy - 2, 8, 0, Math.PI * 2); ctx.fill();
+
+      // Rib lines
+      ctx.strokeStyle = "#c2410c"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - 3, cy - 8); ctx.lineTo(cx - 3, cy + 4);
+      ctx.moveTo(cx + 3, cy - 8); ctx.lineTo(cx + 3, cy + 4);
+      ctx.stroke();
+
+      // Horizontal Lid Seam across upper forehead
+      ctx.strokeStyle = "#9a3412"; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx - 6, cy - 4); ctx.lineTo(cx + 6, cy - 4);
+      ctx.stroke();
+
+      // Woody brown stem on top of lid
+      ctx.fillStyle = "#78350f";
+      ctx.fillRect(cx - 1.5, cy - 13, 3, 4);
+
+      // Curled green leaf attached to stem
       ctx.fillStyle = "#22c55e";
-      ctx.beginPath(); ctx.ellipse(cx + 4, cy - 10, 4, 2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx + 4, cy - 12, 4, 2, 0.3, 0, Math.PI * 2); ctx.fill();
 
-      // Eyes & tracking pupils
+      // 7. Carved Black Eye Sockets with Tracking White Pupils
       ctx.fillStyle = "#000";
-      ctx.fillRect(cx - 5, cy - 4, 3, 3);
-      ctx.fillRect(cx + 2, cy - 4, 3, 3);
+      ctx.fillRect(cx - 5, cy - 6, 3, 3.5);
+      ctx.fillRect(cx + 2, cy - 6, 3, 3.5);
       let ldx = Math.max(-1, Math.min(1, Math.cos(angle) * 1.5));
       let ldy = Math.max(-1, Math.min(1, Math.sin(angle) * 1.5));
       ctx.fillStyle = "#fff";
-      ctx.fillRect(cx - 4 + ldx, cy - 3 + ldy, 1.5, 1.5);
-      ctx.fillRect(cx + 3 + ldx, cy - 3 + ldy, 1.5, 1.5);
+      ctx.fillRect(cx - 4 + ldx, cy - 5 + ldy, 1.5, 1.5);
+      ctx.fillRect(cx + 3 + ldx, cy - 5 + ldy, 1.5, 1.5);
 
-      // Grin & fangs
+      // 8. Mischievous Fanged Grin
       ctx.fillStyle = "#000";
-      ctx.fillRect(cx - 4, cy + 3, 9, 2);
+      ctx.fillRect(cx - 4, cy, 9, 2.5);
+      // Sharp white fangs
       ctx.fillStyle = "#fff";
-      ctx.fillRect(cx - 2, cy + 3, 1.5, 1.5);
-      ctx.fillRect(cx + 2, cy + 3, 1.5, 1.5);
+      ctx.fillRect(cx - 2.5, cy, 1.5, 1.5);
+      ctx.fillRect(cx + 1.5, cy, 1.5, 1.5);
+      ctx.fillRect(cx - 0.5, cy + 1, 1.5, 1.5);
     }
 
     function drawTwisted(tw) {
