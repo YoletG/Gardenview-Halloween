@@ -2,7 +2,7 @@
 
 <p align="center">
   <b>A responsive multi-application touch operating system for the LilyGO T-HMI ESP32-S3</b><br>
-  Featuring Drawing Pad with IbisPaint HSV Color Picker, Games Arcade (Gourdy's Escape & Breakout), System Monitor, and Sub-Pixel Anti-Aliased UI.
+  Featuring Drawing Pad with IbisPaint HSV Color Picker, Games Arcade (Gardenview Halloween & Breakout), System Monitor, and Sub-Pixel Anti-Aliased UI.
 </p>
 
 <p align="center">
@@ -25,7 +25,7 @@
 
 ### 2. 🕹️ Games Arcade (`AppArcade`)
 A retro touch arcade launcher featuring two complete games with sub-navigation and smooth anti-aliased cards:
-- **🎃 Gourdy's Escape (`AppGourdy`):**
+- **🎃 Gardenview Halloween (`AppGourdy`):**
   - **Dandy's World Survival:** Play as Gourdy Holloway, the anthropomorphic pumpkin extractor from *Dandy's World*. Features custom multi-lobe pumpkin rendering, moving white pupils that track threats, green stem/leaf, and fanged grin.
   - **Ichor Extraction & Elevators:** Collect glowing purple Ichor drops scattered across Gardenview rooms, activate the central computer extraction terminal (`0% → 100%`), and unlock the elevator door to advance floors.
   - **Twisted Monsters (Aggro AI):** Inky shadow enemies with dripping tendrils and piercing red eyes patrol the arena. Twisteds detect Gourdy and enter high-speed chase mode with alert markers (`!`). Kite them around stone pillars!
@@ -60,7 +60,7 @@ A retro touch arcade launcher featuring two complete games with sub-navigation a
 | <img src="./image/screen_launcher.png" width="230"/> | <img src="./image/screen_drawpad.png" width="230"/> | <img src="./image/screen_colorpicker.png" width="230"/> |
 | *Card launcher with theme badges* | *Solid brush with persistent PSRAM canvas* | *HSV hue slider & Sat/Val square* |
 
-| 4. Games Arcade Menu | 5. Gourdy's Escape (Dandy's World) | 6. Breakout Arcade Game |
+| 4. Games Arcade Menu | 5. Gardenview Halloween (Dandy's World) | 6. Breakout Arcade Game |
 |:---:|:---:|:---:|
 | <img src="./image/screen_arcade.png" width="230"/> | <img src="./image/screen_gourdy.png" width="230"/> | <img src="./image/screen_breakout.png" width="230"/> |
 | *Arcade subgame selector hub* | *Ichor collection, machine extraction & Twisteds* | *60 FPS touch paddle & brick physics* |

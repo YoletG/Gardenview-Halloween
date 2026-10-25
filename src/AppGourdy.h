@@ -414,14 +414,16 @@ public:
         // Title Cards
         tft.setTextColor(TFT_ORANGE, TFT_BLACK);
         tft.setTextDatum(MC_DATUM);
-        tft.drawString("GOURDY'S ESCAPE", 120, 145, 4);
+        tft.drawString("GARDENVIEW", 120, 138, 4);
+        tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+        tft.drawString("HALLOWEEN", 120, 158, 4);
 
         tft.setTextColor(0xD81F, TFT_BLACK);
-        tft.drawString("Collect Ichor & Dodge Twisteds!", 120, 172, 2);
+        tft.drawString("Collect Ichor & Dodge Twisteds!", 120, 180, 2);
 
         tft.setTextColor(0x94B2, TFT_BLACK);
-        tft.drawString("Touch to steer Gourdy Holloway", 120, 195, 2);
-        tft.drawString("Extract the machine to open Elevator", 120, 212, 1);
+        tft.drawString("Touch to steer Gourdy Holloway", 120, 200, 2);
+        tft.drawString("Extract the machine to open Elevator", 120, 216, 1);
 
         char hbuf[32];
         snprintf(hbuf, sizeof(hbuf), "High Score: %u", (unsigned)highScore);

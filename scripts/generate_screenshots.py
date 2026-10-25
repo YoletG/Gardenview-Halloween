@@ -86,7 +86,7 @@ def render_launcher():
     
     apps = [
         ("#1", "Draw Pad", "Solid brush & anti-aliased UI", C_GREEN),
-        ("#2", "Arcade", "Gourdy's Escape & Breakout", C_ORANGE),
+        ("#2", "Arcade", "Gardenview Halloween & Breakout", C_ORANGE),
         ("#3", "SysMonitor", "System health, sensors & Wi-Fi", C_BLUE)
     ]
     
@@ -244,7 +244,7 @@ def render_arcade_menu():
     draw.text((S(65), S(31)), "GAMES ARCADE", fill=C_WHITE, font=font_bold)
     draw.text((S(48), S(46)), "Choose an arcade game to play", fill=C_GRAY_TEXT, font=font_xs)
     
-    # Card 1: Gourdy's Escape (Dandy's World)
+    # Card 1: Gardenview Halloween (Dandy's World)
     card1_y = S(72)
     card_h = S(100)
     draw.rounded_rectangle([S(8), card1_y, S(232), card1_y + card_h], radius=S(8), fill=C_CARD_BG, outline=C_ORANGE, width=SCALE)
@@ -270,10 +270,11 @@ def render_arcade_menu():
     draw.point((px + S(2), py + S(5)), fill=C_WHITE)
     
     # Text
-    draw.text((S(76), card1_y + S(14)), "Gourdy's Escape", fill=C_ORANGE, font=font_large)
-    draw.text((S(76), card1_y + S(40)), "Dandy's World Survival", fill=(216, 120, 255), font=font_sm)
-    draw.text((S(76), card1_y + S(60)), "Collect Ichor, extract machines", fill=C_GRAY_TEXT, font=font_xs)
-    draw.text((S(76), card1_y + S(74)), "& survive the Twisteds!", fill=C_GRAY_TEXT, font=font_xs)
+    draw.text((S(76), card1_y + S(12)), "Gardenview", fill=C_ORANGE, font=font_large)
+    draw.text((S(76), card1_y + S(34)), "Halloween", fill=C_YELLOW, font=font_large)
+    draw.text((S(76), card1_y + S(58)), "Dandy's World Survival", fill=(216, 120, 255), font=font_sm)
+    draw.text((S(76), card1_y + S(76)), "Play as Gourdy! Collect Ichor,", fill=C_GRAY_TEXT, font=font_xs)
+    draw.text((S(76), card1_y + S(87)), "extract & escape Twisteds!", fill=C_GRAY_TEXT, font=font_xs)
     draw.text((S(214), card1_y + S(40)), ">", fill=C_ORANGE, font=font_large)
     
     # Card 2: Breakout
@@ -308,13 +309,13 @@ def render_arcade_menu():
     return img
 
 # ==============================================================================
-# 5. GOURDY'S ESCAPE (DANDY'S WORLD SURVIVAL)
+# 5. GARDENVIEW HALLOWEEN (DANDY'S WORLD SURVIVAL)
 # ==============================================================================
 def render_gourdy():
     # Arena background: Gardenview slate floor (8, 16, 22)
     img = Image.new("RGB", (W, H), (8, 16, 22))
     draw = ImageDraw.Draw(img)
-    draw_status_bar(draw, "Gourdy", is_home=False)
+    draw_status_bar(draw, "Gardenview", is_home=False)
     
     # Header bar
     draw.rectangle([0, S(26), W, S(50)], fill=(16, 20, 34))
@@ -670,7 +671,7 @@ if __name__ == "__main__":
         "1. App Launcher",
         "2. Drawing Pad (Solid)",
         "3. Games Arcade (Hub)",
-        "4. Gourdy's Escape (Dandy's)",
+        "4. Gardenview Halloween",
         "5. Breakout Arcade",
         "6. System Health & Sensors"
     ]

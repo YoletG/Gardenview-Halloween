@@ -33,7 +33,7 @@ private:
         tft.setTextColor(0x94B2, 0x1082);
         tft.drawString("Choose an arcade game to play", 120, 50, 1);
 
-        // Card 1: Gourdy's Escape (Dandy's World)
+        // Card 1: Gardenview Halloween (Dandy's World)
         int card1Y = 72;
         int cardH = 100;
         UI_AA::fillRoundRect(tft, 8, card1Y, 224, cardH, 8, 0x18C3, TFT_BLACK);
@@ -59,14 +59,17 @@ private:
         // Titles & Description
         tft.setTextDatum(TL_DATUM);
         tft.setTextColor(TFT_ORANGE, 0x18C3);
-        tft.drawString("Gourdy's Escape", 74, card1Y + 14, 4);
+        tft.drawString("Gardenview", 74, card1Y + 12, 4);
+
+        tft.setTextColor(TFT_YELLOW, 0x18C3);
+        tft.drawString("Halloween", 74, card1Y + 34, 4);
 
         tft.setTextColor(0xD81F, 0x18C3);
-        tft.drawString("Dandy's World Survival", 74, card1Y + 40, 2);
+        tft.drawString("Dandy's World Survival", 74, card1Y + 58, 2);
 
         tft.setTextColor(0xAD75, 0x18C3);
-        tft.drawString("Collect Ichor, extract machines", 74, card1Y + 60, 1);
-        tft.drawString("& survive the Twisteds!", 74, card1Y + 74, 1);
+        tft.drawString("Play as Gourdy! Collect Ichor,", 74, card1Y + 76, 1);
+        tft.drawString("extract & escape Twisteds!", 74, card1Y + 87, 1);
 
         // Card 2: Breakout Arcade
         int card2Y = 186;
