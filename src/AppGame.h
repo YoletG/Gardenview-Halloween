@@ -87,17 +87,26 @@ private:
 
     void drawHeader(TFT_eSPI& tft) {
         tft.fillRect(0, 26, ARENA_W, 24, 0x18E3);
+        tft.drawFastHLine(0, 50, 240, 0x2965);
+
+        // < ARC Button (x: 4..48, y: 28..47)
+        UI_AA::fillRoundRect(tft, 4, 28, 44, 20, 3, 0x2124, 0x18E3);
+        UI_AA::drawRoundRect(tft, 4, 28, 44, 20, 3, TFT_CYAN, 0x18E3);
+        tft.setTextColor(TFT_CYAN, 0x2124);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("< ARC", 26, 38, 1);
+
         tft.setTextColor(TFT_WHITE, 0x18E3);
         tft.setTextDatum(TL_DATUM);
         char buf[32];
-        snprintf(buf, sizeof(buf), "Score: %d", score);
-        tft.drawString(buf, 8, 30, 2);
+        snprintf(buf, sizeof(buf), "%d", score);
+        tft.drawString(buf, 54, 30, 2);
 
-        snprintf(buf, sizeof(buf), "Hi: %d", highScore);
-        tft.drawString(buf, 110, 30, 2);
+        snprintf(buf, sizeof(buf), "Hi:%d", highScore);
+        tft.drawString(buf, 108, 30, 2);
 
         // Draw lives with anti-aliasing
-        int heartX = 194;
+        int heartX = 188;
         for (int i = 0; i < 3; i++) {
             if (i < lives) {
                 UI_AA::fillCircle(tft, heartX + i * 14, 38, 4, TFT_RED, 0x18E3);

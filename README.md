@@ -2,7 +2,7 @@
 
 <p align="center">
   <b>A responsive multi-application touch operating system for the LilyGO T-HMI ESP32-S3</b><br>
-  Featuring Drawing Pad with IbisPaint HSV Color Picker, Breakout Arcade Game, System Monitor, and Sub-Pixel Anti-Aliased UI.
+  Featuring Drawing Pad with IbisPaint HSV Color Picker, Games Arcade (Gourdy's Escape & Breakout), System Monitor, and Sub-Pixel Anti-Aliased UI.
 </p>
 
 <p align="center">
@@ -23,10 +23,18 @@
   - Quick-access palette pills and live hex/color preview box.
 - **PSRAM Persistent Canvas:** 150KB 16-bit RGB565 framebuffer stored in 8MB PSRAM, preserving your artwork when switching between apps or opening modals.
 
-### 2. 🕹️ Breakout Arcade Game (`AppGame`)
-- **60 FPS Differential Rendering:** Only paddle and ball bounding boxes are refreshed each frame, eliminating display tearing.
-- **Touch-Guided Paddle:** Smooth low-pass paddle tracking responsive to stylus or finger gestures.
-- **Arcade Physics:** Realistic brick collisions, variable deflection angles based on paddle impact location, score tracking, high score memory, and heart-based lives indicator.
+### 2. 🕹️ Games Arcade (`AppArcade`)
+A retro touch arcade launcher featuring two complete games with sub-navigation and smooth anti-aliased cards:
+- **🎃 Gourdy's Escape (`AppGourdy`):**
+  - **Dandy's World Survival:** Play as Gourdy Holloway, the anthropomorphic pumpkin extractor from *Dandy's World*. Features custom multi-lobe pumpkin rendering, moving white pupils that track threats, green stem/leaf, and fanged grin.
+  - **Ichor Extraction & Elevators:** Collect glowing purple Ichor drops scattered across Gardenview rooms, activate the central computer extraction terminal (`0% → 100%`), and unlock the elevator door to advance floors.
+  - **Twisted Monsters (Aggro AI):** Inky shadow enemies with dripping tendrils and piercing red eyes patrol the arena. Twisteds detect Gourdy and enter high-speed chase mode with alert markers (`!`). Kite them around stone pillars!
+  - **Sugar Rush Boost:** Pick up wrapped candies across the map and tap the on-screen `RUSH!` button for an immediate +50% speed boost.
+  - **Stamina Management:** Dynamic stamina gauge governs sprinting and evasive maneuvers.
+- **🧱 Breakout Arcade (`AppGame`):**
+  - **60 FPS Differential Rendering:** Only paddle and ball bounding boxes are redrawn each frame, eliminating LCD tearing.
+  - **Touch-Guided Paddle:** Low-pass filter tracking for responsive finger or stylus paddle control.
+  - **Arcade Physics:** Realistic brick collisions, variable deflection angles, score tracking, high score memory, and heart-based lives indicator.
 
 ### 3. 📊 System Health & Sensor Monitor (`AppSystemMonitor`)
 - **SoC Health:** Real-time ESP32-S3 CPU frequency (240MHz), internal silicon die temperature sensor (°C / °F), system uptime, and Flash memory details.
@@ -41,7 +49,7 @@
 
 ### 4. ✨ Sub-Pixel Anti-Aliased UI (`UI_AA`)
 - Custom graphics engine providing smooth anti-aliased rounded rectangles, circular indicators, and outlines (`UI_AA::fillRoundRect`, `UI_AA::drawRoundRect`, `UI_AA::fillCircle`, `UI_AA::drawCircle`).
-- Pre-computed alpha blending (`tft.alphaBlend`) against known dark theme surfaces with zero parallel LCD bus read penalties.
+- Pre-computed alpha blending (`tft.alphaBlend`) against dark theme surfaces with zero parallel LCD bus read penalties.
 
 ---
 
@@ -52,10 +60,15 @@
 | <img src="./image/screen_launcher.png" width="230"/> | <img src="./image/screen_drawpad.png" width="230"/> | <img src="./image/screen_colorpicker.png" width="230"/> |
 | *Card launcher with theme badges* | *Solid brush with persistent PSRAM canvas* | *HSV hue slider & Sat/Val square* |
 
-| 4. Breakout Arcade Game | 5. System Monitor (SoC) | 6. Sensors & Calibration |
+| 4. Games Arcade Menu | 5. Gourdy's Escape (Dandy's World) | 6. Breakout Arcade Game |
 |:---:|:---:|:---:|
-| <img src="./image/screen_breakout.png" width="230"/> | <img src="./image/screen_sysmonitor.png" width="230"/> | <img src="./image/screen_sensors.png" width="230"/> |
-| *60 FPS touch paddle & brick physics* | *Dual-core stats, temp & memory bars* | *Magnetic reed switch & touch calibration* |
+| <img src="./image/screen_arcade.png" width="230"/> | <img src="./image/screen_gourdy.png" width="230"/> | <img src="./image/screen_breakout.png" width="230"/> |
+| *Arcade subgame selector hub* | *Ichor collection, machine extraction & Twisteds* | *60 FPS touch paddle & brick physics* |
+
+| 7. System Monitor (SoC) | 8. Power & Sensors |
+|:---:|:---:|
+| <img src="./image/screen_sysmonitor.png" width="230"/> | <img src="./image/screen_sensors.png" width="230"/> |
+| *Dual-core stats, temp & memory bars* | *Magnetic reed switch & touch calibration* |
 
 ---
 

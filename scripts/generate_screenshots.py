@@ -25,6 +25,8 @@ C_GREEN = (34, 197, 94)
 C_ORANGE = (249, 115, 22)
 C_YELLOW = (234, 179, 8)
 C_RED = (239, 68, 68)
+C_PURPLE = (168, 85, 247)
+C_ICHOR = (216, 31, 240)
 C_BLUE = (59, 130, 246)
 C_NAVY = (12, 18, 30)
 C_CARD_BG = (24, 28, 36)
@@ -42,6 +44,7 @@ def get_font(size, mono=False):
     except Exception:
         return ImageFont.load_default()
 
+font_hero = get_font(15, mono=False)
 font_title = get_font(12, mono=False)
 font_large = get_font(14, mono=False)
 font_bold = get_font(11, mono=False)
@@ -83,7 +86,7 @@ def render_launcher():
     
     apps = [
         ("#1", "Draw Pad", "Solid brush & anti-aliased UI", C_GREEN),
-        ("#2", "Breakout", "Retro arcade brick breaker", C_ORANGE),
+        ("#2", "Arcade", "Gourdy's Escape & Breakout", C_ORANGE),
         ("#3", "SysMonitor", "System health, sensors & Wi-Fi", C_BLUE)
     ]
     
@@ -144,20 +147,13 @@ def render_drawpad():
     draw.rounded_rectangle([S(204), S(29), S(236), S(47)], radius=S(4), fill=(40, 20, 20), outline=C_RED, width=1)
     draw.text((S(210), S(32)), "CLR", fill=C_RED, font=font_xs)
     
-    # Canvas artwork: smooth colorful strokes
-    # Draw a stylized mountain sunset with clean anti-aliasing and solid overlapping paths
+    # Stylized drawing
     sun_cx, sun_cy = S(120), S(140)
     draw.ellipse([sun_cx - S(32), sun_cy - S(32), sun_cx + S(32), sun_cy + S(32)], fill=C_YELLOW)
     
-    # Smooth mountain layers
-    mountain_pts = [
-        (S(10), S(240)), (S(70), S(160)), (S(130), S(220)), 
-        (S(180), S(150)), (S(230), S(240))
-    ]
     draw.line([(S(10), S(240)), (S(70), S(160)), (S(130), S(220))], fill=C_CYAN, width=S(6), joint="curve")
     draw.line([(S(130), S(220)), (S(180), S(150)), (S(230), S(240))], fill=(168, 85, 247), width=S(6), joint="curve")
     
-    # Caligraphy ribbon / signature stroke
     ribbon = [
         (S(30), S(260)), (S(60), S(250)), (S(100), S(270)), 
         (S(150), S(255)), (S(190), S(270)), (S(220), S(260))
@@ -170,10 +166,8 @@ def render_drawpad():
     draw.rectangle([0, S(289), W, H], fill=C_TOOLBAR)
     draw.line([0, S(289), W, S(289)], fill=(45, 55, 75), width=1)
     
-    # Active HSV color wheel swatch
+    # Swatches
     draw.ellipse([S(6), S(294), S(30), S(318)], fill=C_GREEN, outline=C_WHITE, width=SCALE)
-    
-    # Swatch pills
     pal = [C_WHITE, C_RED, C_ORANGE, C_YELLOW, C_GREEN, C_CYAN]
     for i, col in enumerate(pal):
         px = S(38 + i * 33)
@@ -182,13 +176,12 @@ def render_drawpad():
     return img
 
 # ==============================================================================
-# 3. COLOR PICKER MODAL (IbisPaint-style)
+# 3. COLOR PICKER MODAL
 # ==============================================================================
 def render_color_picker():
     img = render_drawpad()
     draw = ImageDraw.Draw(img)
     
-    # Modal background
     modal_bg = (18, 22, 30)
     draw.rectangle([0, S(26), W, H], fill=modal_bg)
     draw.rectangle([0, S(26), W, H], outline=C_CYAN, width=1)
@@ -196,7 +189,7 @@ def render_color_picker():
     draw.text((S(48), S(32)), "COLOR PALETTE (HSV)", fill=C_WHITE, font=font_bold)
     draw.text((S(220), S(30)), "X", fill=C_RED, font=font_bold)
     
-    # 1. Rainbow Hue Slider
+    # Hue slider
     hue_y = S(56)
     hue_h = S(20)
     for x in range(S(16), S(224)):
@@ -204,11 +197,10 @@ def render_color_picker():
         r, g, b = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
         draw.line([x, hue_y, x, hue_y + hue_h], fill=(int(r*255), int(g*255), int(b*255)))
     draw.rectangle([S(16), hue_y, S(224), hue_y + hue_h], outline=C_WHITE, width=1)
-    # Hue thumb
     thumb_x = S(16 + int(0.33 * 208))
     draw.rectangle([thumb_x - S(3), hue_y - S(2), thumb_x + S(3), hue_y + hue_h + S(2)], outline=C_WHITE, fill=(0, 0, 0), width=1)
     
-    # 2. Saturation / Value Gradient Box
+    # Sat/Val box
     box_x = S(16)
     box_y = S(84)
     box_w = S(208)
@@ -220,43 +212,263 @@ def render_color_picker():
             r, g, b = colorsys.hsv_to_rgb(0.33, sat, val)
             draw.rectangle([box_x + x_step, box_y + y_step, box_x + x_step + SCALE, box_y + y_step + SCALE], fill=(int(r*255), int(g*255), int(b*255)))
     draw.rectangle([box_x, box_y, box_x + box_w, box_y + box_h], outline=C_WHITE, width=1)
-    # Cursor crosshair
     draw.ellipse([box_x + S(160) - S(5), box_y + S(20) - S(5), box_x + S(160) + S(5), box_y + S(20) + S(5)], outline=C_WHITE, width=SCALE)
     
-    # 3. Preview Swatch
+    # Preview Swatch
     draw.rounded_rectangle([S(10), S(194), S(90), S(234)], radius=S(5), fill=C_GREEN, outline=C_WHITE, width=1)
     draw.text((S(22), S(206)), "#22C55E", fill=(0, 0, 0), font=font_mono)
     
-    # 4. Preset pills
+    # Presets
     presets = [C_WHITE, C_RED, C_ORANGE, C_YELLOW, C_GREEN, C_CYAN, C_BLUE, (236, 72, 153)]
     for i, p_col in enumerate(presets):
         px = S(100 + (i % 4) * 32)
         py = S(194 if i < 4 else 216)
         draw.rounded_rectangle([px, py, px + S(28), py + S(18)], radius=S(3), fill=p_col, outline=(p_col == C_GREEN and C_WHITE or (70, 80, 100)), width=1)
         
-    # 5. Apply Button
+    # Apply button
     draw.rounded_rectangle([S(16), S(248), S(224), S(286)], radius=S(6), fill=C_GREEN, outline=C_WHITE, width=1)
     draw.text((S(70), S(258)), "APPLY COLOR", fill=(0, 0, 0), font=font_bold)
     return img
 
 # ==============================================================================
-# 4. BREAKOUT GAME
+# 4. GAMES ARCADE SELECTION MENU
+# ==============================================================================
+def render_arcade_menu():
+    img = Image.new("RGB", (W, H), C_BLACK)
+    draw = ImageDraw.Draw(img)
+    draw_status_bar(draw, "Arcade", is_home=False)
+    
+    # Header Sub-bar
+    draw.rectangle([0, S(26), W, S(62)], fill=(16, 20, 32))
+    draw.line([0, S(62), W, S(62)], fill=(45, 55, 75), width=1)
+    draw.text((S(65), S(31)), "GAMES ARCADE", fill=C_WHITE, font=font_bold)
+    draw.text((S(48), S(46)), "Choose an arcade game to play", fill=C_GRAY_TEXT, font=font_xs)
+    
+    # Card 1: Gourdy's Escape (Dandy's World)
+    card1_y = S(72)
+    card_h = S(100)
+    draw.rounded_rectangle([S(8), card1_y, S(232), card1_y + card_h], radius=S(8), fill=C_CARD_BG, outline=C_ORANGE, width=SCALE)
+    
+    # Pumpkin Accent Box
+    draw.rounded_rectangle([S(14), card1_y + S(12), S(68), card1_y + S(88)], radius=S(6), fill=(40, 25, 15), outline=C_ORANGE, width=1)
+    
+    # Mini Gourdy Illustration in Accent Box
+    px = S(41)
+    py = card1_y + S(50)
+    # Lobes
+    draw.ellipse([px - S(14), py - S(10), px - S(1), py + S(10)], fill=(249, 115, 22))
+    draw.ellipse([px + S(1), py - S(10), px + S(14), py + S(10)], fill=(249, 115, 22))
+    draw.ellipse([px - S(9), py - S(11), px + S(9), py + S(11)], fill=(253, 186, 116))
+    # Stem & Leaf
+    draw.rectangle([px - S(2), py - S(16), px + S(2), py - S(10)], fill=(105, 154, 33))
+    draw.ellipse([px + S(2), py - S(16), px + S(8), py - S(12)], fill=(34, 197, 94))
+    # Eyes & Smile
+    draw.rectangle([px - S(6), py - S(4), px - S(2), py], fill=(10, 10, 10))
+    draw.rectangle([px + S(2), py - S(4), px + S(6), py], fill=(10, 10, 10))
+    draw.line([(px - S(5), py + S(5)), (px + S(5), py + S(5))], fill=(10, 10, 10), width=SCALE)
+    draw.point((px - S(2), py + S(5)), fill=C_WHITE)
+    draw.point((px + S(2), py + S(5)), fill=C_WHITE)
+    
+    # Text
+    draw.text((S(76), card1_y + S(14)), "Gourdy's Escape", fill=C_ORANGE, font=font_large)
+    draw.text((S(76), card1_y + S(40)), "Dandy's World Survival", fill=(216, 120, 255), font=font_sm)
+    draw.text((S(76), card1_y + S(60)), "Collect Ichor, extract machines", fill=C_GRAY_TEXT, font=font_xs)
+    draw.text((S(76), card1_y + S(74)), "& survive the Twisteds!", fill=C_GRAY_TEXT, font=font_xs)
+    draw.text((S(214), card1_y + S(40)), ">", fill=C_ORANGE, font=font_large)
+    
+    # Card 2: Breakout
+    card2_y = S(186)
+    draw.rounded_rectangle([S(8), card2_y, S(232), card2_y + card_h], radius=S(8), fill=C_CARD_BG, outline=C_CYAN, width=SCALE)
+    
+    # Breakout Accent Box
+    draw.rounded_rectangle([S(14), card2_y + S(12), S(68), card2_y + S(88)], radius=S(6), fill=(10, 30, 45), outline=C_CYAN, width=1)
+    
+    # Mini Breakout illustration
+    bx = S(41)
+    by = card2_y + S(50)
+    draw.rounded_rectangle([bx - S(18), by - S(24), bx - S(3), by - S(16)], radius=S(2), fill=C_RED)
+    draw.rounded_rectangle([bx + S(3), by - S(24), bx + S(18), by - S(16)], radius=S(2), fill=C_GREEN)
+    draw.rounded_rectangle([bx - S(18), by - S(13), bx - S(3), by - S(5)], radius=S(2), fill=C_ORANGE)
+    draw.rounded_rectangle([bx + S(3), by - S(13), bx + S(18), by - S(5)], radius=S(2), fill=C_CYAN)
+    # Ball
+    draw.ellipse([bx + S(2) - S(3), by + S(5) - S(3), bx + S(2) + S(3), by + S(5) + S(3)], fill=C_YELLOW)
+    # Paddle
+    draw.rounded_rectangle([bx - S(16), by + S(20), bx + S(16), by + S(26)], radius=S(3), fill=C_CYAN)
+    
+    # Text
+    draw.text((S(76), card2_y + S(14)), "Breakout", fill=C_CYAN, font=font_large)
+    draw.text((S(76), card2_y + S(40)), "Retro Brick Breaker", fill=C_WHITE, font=font_sm)
+    draw.text((S(76), card2_y + S(60)), "Paddle physics, bouncing ball", fill=C_GRAY_TEXT, font=font_xs)
+    draw.text((S(76), card2_y + S(74)), "and high score records", fill=C_GRAY_TEXT, font=font_xs)
+    draw.text((S(214), card2_y + S(40)), ">", fill=C_CYAN, font=font_large)
+    
+    # Footer
+    draw.rectangle([0, S(304), W, H], fill=C_NAVY)
+    draw.text((S(20), S(307)), "Choose game to begin or < HOME to exit", fill=(100, 116, 139), font=font_xs)
+    return img
+
+# ==============================================================================
+# 5. GOURDY'S ESCAPE (DANDY'S WORLD SURVIVAL)
+# ==============================================================================
+def render_gourdy():
+    # Arena background: Gardenview slate floor (8, 16, 22)
+    img = Image.new("RGB", (W, H), (8, 16, 22))
+    draw = ImageDraw.Draw(img)
+    draw_status_bar(draw, "Gourdy", is_home=False)
+    
+    # Header bar
+    draw.rectangle([0, S(26), W, S(50)], fill=(16, 20, 34))
+    draw.line([0, S(50), W, S(50)], fill=(45, 55, 75), width=1)
+    
+    # < ARC button
+    draw.rounded_rectangle([S(4), S(28), S(46), S(48)], radius=S(3), fill=(30, 40, 60), outline=C_CYAN, width=1)
+    draw.text((S(8), S(32)), "< ARC", fill=C_CYAN, font=font_xs)
+    
+    # Floor badge
+    draw.text((S(52), S(31)), "F:1", fill=C_WHITE, font=font_bold)
+    
+    # Score
+    draw.text((S(80), S(31)), "00450", fill=C_YELLOW, font=font_bold)
+    
+    # Lives (hearts)
+    for i in range(3):
+        hx = S(135 + i * 14)
+        draw.ellipse([hx, S(33), hx + S(9), S(42)], fill=C_RED, outline=C_WHITE, width=1)
+        
+    # Sugar Rush / Candy button
+    draw.rounded_rectangle([S(182), S(28), S(236), S(48)], radius=S(4), fill=C_ORANGE, outline=C_WHITE, width=1)
+    draw.text((S(186), S(32)), "RUSH(1)", fill=(0, 0, 0), font=font_xs)
+    
+    # Arena Border
+    draw.rectangle([S(4), S(52), S(236), S(296)], outline=(35, 45, 65), width=1)
+    
+    # Elevator Door (Top Center)
+    elev_x = S(120)
+    elev_y = S(56)
+    elev_w = S(44)
+    elev_h = S(14)
+    draw.rounded_rectangle([elev_x - elev_w//2, elev_y, elev_x + elev_w//2, elev_y + elev_h], radius=S(3), fill=(40, 45, 55), outline=C_YELLOW, width=1)
+    draw.text((elev_x - S(18), elev_y + S(2)), "ELEVATOR", fill=C_YELLOW, font=font_xs)
+    
+    # Pillars / Obstacles (Gardenview Room architecture)
+    obstacles = [
+        (S(38), S(110), S(24), S(24)),
+        (S(178), S(110), S(24), S(24)),
+        (S(54), S(200), S(28), S(20)),
+        (S(158), S(200), S(28), S(20))
+    ]
+    for ox, oy, ow, oh in obstacles:
+        draw.rounded_rectangle([ox, oy, ox + ow, oy + oh], radius=S(4), fill=(30, 36, 48), outline=(60, 75, 100), width=SCALE)
+        draw.rectangle([ox + S(4), oy + S(4), ox + ow - S(4), oy + oh - S(4)], fill=(20, 24, 32))
+        
+    # Extraction Machine (Gardenview Computer Terminal)
+    mx = S(120)
+    my = S(135)
+    mw = S(36)
+    mh = S(28)
+    draw.rounded_rectangle([mx - mw//2, my - mh//2, mx + mw//2, my + mh//2], radius=S(4), fill=(24, 30, 42), outline=(70, 85, 110), width=SCALE)
+    # Monitor Screen
+    draw.rectangle([mx - S(14), my - S(10), mx + S(14), my + S(2)], fill=(10, 25, 20), outline=C_GREEN, width=1)
+    draw.text((mx - S(12), my - S(8)), "GEN: 75%", fill=C_GREEN, font=font_xs)
+    # Interactive Generator Progress Bar
+    draw.rectangle([mx - S(14), my + S(5), mx + S(14), my + S(9)], fill=(15, 20, 25), outline=(50, 60, 75), width=1)
+    draw.rectangle([mx - S(13), my + S(6), mx + S(7), my + S(8)], fill=C_GREEN)
+    
+    # Ichor Drops (Glowing Purple Inky essence)
+    ichor_pts = [(S(35), S(170)), (S(205), S(170)), (S(120), S(185))]
+    for ix, iy in ichor_pts:
+        # Outer glow
+        draw.ellipse([ix - S(9), iy - S(9), ix + S(9), iy + S(9)], fill=(60, 15, 75))
+        # Drop body
+        draw.ellipse([ix - S(5), iy - S(5), ix + S(5), iy + S(5)], fill=C_ICHOR)
+        # Core highlight
+        draw.ellipse([ix - S(2), iy - S(3), ix + S(2), iy + S(1)], fill=C_WHITE)
+        
+    # Collectible Candy Item
+    cx, cy = S(85), S(160)
+    draw.ellipse([cx - S(6), cy - S(6), cx + S(6), cy + S(6)], fill=(236, 72, 153), outline=C_WHITE, width=1)
+    draw.line([(cx - S(4), cy), (cx + S(4), cy)], fill=C_WHITE, width=1)
+    draw.polygon([(cx - S(9), cy - S(4)), (cx - S(5), cy), (cx - S(9), cy + S(4))], fill=(236, 72, 153))
+    draw.polygon([(cx + S(9), cy - S(4)), (cx + S(5), cy), (cx + S(9), cy + S(4))], fill=(236, 72, 153))
+    
+    # Twisted Monster (Inky Shadow Enemy Hunting Gourdy)
+    tx, ty = S(175), S(150)
+    # Aggro alert mark "!"
+    draw.text((tx - S(3), ty - S(26)), "!", fill=C_RED, font=font_bold)
+    # Dripping inky tendrils
+    tendril_pts = [
+        (tx - S(12), ty + S(12)), (tx - S(6), ty + S(16)),
+        (tx, ty + S(14)), (tx + S(6), ty + S(17)), (tx + S(12), ty + S(11))
+    ]
+    for px, py in tendril_pts:
+        draw.line([(tx, ty), (px, py)], fill=(12, 12, 16), width=S(3))
+    # Inky Head/Body
+    draw.ellipse([tx - S(14), ty - S(14), tx + S(14), ty + S(14)], fill=(15, 15, 20), outline=(50, 10, 20), width=1)
+    # Piercing Red Eyes
+    draw.ellipse([tx - S(8), ty - S(4), tx - S(2), ty + S(2)], fill=C_RED)
+    draw.ellipse([tx + S(2), ty - S(4), tx + S(8), ty + S(2)], fill=C_RED)
+    draw.point((tx - S(5), ty - S(1)), fill=C_WHITE)
+    draw.point((tx + S(5), ty - S(1)), fill=C_WHITE)
+    
+    # Gourdy Holloway (Player)
+    gx, gy = S(120), S(245)
+    # Vine limbs
+    draw.line([(gx - S(8), gy + S(6)), (gx - S(12), gy + S(16))], fill=(105, 154, 33), width=SCALE)
+    draw.line([(gx + S(8), gy + S(6)), (gx + S(12), gy + S(16))], fill=(105, 154, 33), width=SCALE)
+    # Multi-lobed Pumpkin Body (Smooth & Anti-aliased)
+    draw.ellipse([gx - S(13), gy - S(10), gx, gy + S(10)], fill=(249, 115, 22))
+    draw.ellipse([gx, gy - S(10), gx + S(13), gy + S(10)], fill=(249, 115, 22))
+    draw.ellipse([gx - S(8), gy - S(11), gx + S(8), gy + S(11)], fill=(251, 146, 60))
+    # Stem & Curled Leaf
+    draw.rectangle([gx - S(2), gy - S(17), gx + S(2), gy - S(11)], fill=(105, 154, 33))
+    draw.ellipse([gx + S(2), gy - S(17), gx + S(9), gy - S(13)], fill=(34, 197, 94))
+    # Seam stitch on forehead
+    draw.line([(gx - S(4), gy - S(6)), (gx + S(4), gy - S(6))], fill=(180, 80, 10), width=1)
+    # Carved Hollow Eyes with Pupils looking towards threat
+    draw.rectangle([gx - S(6), gy - S(3), gx - S(1), gy + S(2)], fill=(15, 15, 15))
+    draw.rectangle([gx + S(2), gy - S(3), gx + S(7), gy + S(2)], fill=(15, 15, 15))
+    draw.point((gx - S(3), gy - S(1)), fill=C_WHITE)
+    draw.point((gx + S(5), gy - S(1)), fill=C_WHITE)
+    # Fanged Grin
+    draw.line([(gx - S(6), gy + S(5)), (gx + S(6), gy + S(5))], fill=(15, 15, 15), width=SCALE)
+    draw.point((gx - S(3), gy + S(5)), fill=C_WHITE)
+    draw.point((gx + S(3), gy + S(5)), fill=C_WHITE)
+    
+    # Touch Joystick indicator / Target Reticle
+    draw.ellipse([gx - S(20), gy - S(20), gx + S(20), gy + S(20)], outline=(80, 120, 160), width=1)
+    
+    # Bottom Bar: Stamina Gauge
+    draw.rectangle([0, S(298), W, H], fill=C_TOOLBAR)
+    draw.line([0, S(298), W, S(298)], fill=(45, 55, 75), width=1)
+    draw.text((S(10), S(303)), "STAMINA", fill=C_GRAY_TEXT, font=font_xs)
+    # Bar
+    draw.rounded_rectangle([S(60), S(304), S(230), S(314)], radius=S(3), fill=(20, 25, 35), outline=(50, 65, 85), width=1)
+    draw.rounded_rectangle([S(61), S(305), S(200), S(313)], radius=S(2), fill=C_GREEN)
+    return img
+
+# ==============================================================================
+# 6. BREAKOUT GAME
 # ==============================================================================
 def render_breakout():
     img = Image.new("RGB", (W, H), C_BLACK)
     draw = ImageDraw.Draw(img)
     draw_status_bar(draw, "Breakout", is_home=False)
     
-    # Score Header
+    # Score Header with < ARC button
     draw.rectangle([0, S(26), W, S(50)], fill=C_TOOLBAR)
     draw.line([0, S(50), W, S(50)], fill=(45, 55, 75), width=1)
-    draw.text((S(8), S(31)), "Score: 180", fill=C_WHITE, font=font_bold)
-    draw.text((S(95), S(31)), "Hi: 420", fill=C_WHITE, font=font_bold)
+    
+    # < ARC button
+    draw.rounded_rectangle([S(4), S(28), S(46), S(48)], radius=S(3), fill=(30, 40, 60), outline=C_CYAN, width=1)
+    draw.text((S(8), S(32)), "< ARC", fill=C_CYAN, font=font_xs)
+    
+    draw.text((S(52), S(31)), "Score: 180", fill=C_WHITE, font=font_bold)
+    draw.text((S(122), S(31)), "Hi: 420", fill=C_WHITE, font=font_bold)
     
     # Lives (hearts)
     for i in range(3):
-        hx = S(180 + i * 16)
-        draw.ellipse([hx, S(33), hx + S(10), S(43)], fill=C_RED, outline=C_WHITE, width=1)
+        hx = S(190 + i * 14)
+        draw.ellipse([hx, S(33), hx + S(9), S(42)], fill=C_RED, outline=C_WHITE, width=1)
         
     # Bricks: 4 rows x 6 columns
     rows = [C_RED, C_ORANGE, C_GREEN, C_CYAN]
@@ -288,7 +500,7 @@ def render_breakout():
     return img
 
 # ==============================================================================
-# 5. SYSTEM MONITOR (SoC TAB)
+# 7. SYSTEM MONITOR (SoC TAB)
 # ==============================================================================
 def render_sysmonitor():
     img = Image.new("RGB", (W, H), C_BLACK)
@@ -338,7 +550,7 @@ def render_sysmonitor():
     return img
 
 # ==============================================================================
-# 6. SYSTEM MONITOR (SENSORS TAB)
+# 8. SYSTEM MONITOR (SENSORS TAB)
 # ==============================================================================
 def render_sensors():
     img = Image.new("RGB", (W, H), C_BLACK)
@@ -391,23 +603,21 @@ def render_sensors():
     return img
 
 # ==============================================================================
-# 7. SHOWCASE MONTAGE
+# 9. SHOWCASE MONTAGE
 # ==============================================================================
-def render_showcase(screens):
-    # 4 screens side by side with bezels and dropshadows
+def render_showcase(screens, labels):
+    # Screens side by side with bezels and dropshadows
+    n = len(screens)
     margin = S(16)
-    spacing = S(16)
-    total_w = margin * 2 + W * 4 + spacing * 3
+    spacing = S(14)
+    total_w = margin * 2 + W * n + spacing * (n - 1)
     total_h = margin * 2 + H + S(36)
     
     bg = Image.new("RGB", (total_w, total_h), (11, 15, 23))
     draw = ImageDraw.Draw(bg)
     
     # Title Header in showcase
-    font_hero = get_font(16, mono=False)
-    draw.text((margin, S(10)), "LilyGO T-HMI (ESP32-S3) Multi-App System Showcase", fill=C_CYAN, font=font_hero)
-    
-    labels = ["1. App Launcher", "2. Drawing Pad (Solid Strokes)", "3. Breakout Arcade Game", "4. System & Sensors Monitor"]
+    draw.text((margin, S(10)), "LilyGO T-HMI (ESP32-S3) Multi-App OS & Games Arcade Showcase", fill=C_CYAN, font=font_hero)
     
     for i, (scr, lbl) in enumerate(zip(screens, labels)):
         x = margin + i * (W + spacing)
@@ -415,7 +625,7 @@ def render_showcase(screens):
         # Drop shadow / frame
         draw.rounded_rectangle([x - S(4), y - S(4), x + W + S(4), y + H + S(4)], radius=S(10), fill=(22, 28, 40), outline=(50, 65, 90), width=SCALE)
         bg.paste(scr, (x, y))
-        draw.text((x + S(8), y + H + S(8)), lbl, fill=C_WHITE, font=font_sm)
+        draw.text((x + S(6), y + H + S(8)), lbl, fill=C_WHITE, font=font_sm)
         
     return bg
 
@@ -435,6 +645,14 @@ if __name__ == "__main__":
     sc_picker.save(f"{out_dir}/screen_colorpicker.png")
     print("Saved screen_colorpicker.png")
     
+    sc_arcade = render_arcade_menu()
+    sc_arcade.save(f"{out_dir}/screen_arcade.png")
+    print("Saved screen_arcade.png")
+    
+    sc_gourdy = render_gourdy()
+    sc_gourdy.save(f"{out_dir}/screen_gourdy.png")
+    print("Saved screen_gourdy.png")
+    
     sc_breakout = render_breakout()
     sc_breakout.save(f"{out_dir}/screen_breakout.png")
     print("Saved screen_breakout.png")
@@ -447,6 +665,15 @@ if __name__ == "__main__":
     sc_sensors.save(f"{out_dir}/screen_sensors.png")
     print("Saved screen_sensors.png")
     
-    showcase = render_showcase([sc_launcher, sc_drawpad, sc_breakout, sc_sysmonitor])
+    screens_for_showcase = [sc_launcher, sc_drawpad, sc_arcade, sc_gourdy, sc_breakout, sc_sysmonitor]
+    labels_for_showcase = [
+        "1. App Launcher",
+        "2. Drawing Pad (Solid)",
+        "3. Games Arcade (Hub)",
+        "4. Gourdy's Escape (Dandy's)",
+        "5. Breakout Arcade",
+        "6. System Health & Sensors"
+    ]
+    showcase = render_showcase(screens_for_showcase, labels_for_showcase)
     showcase.save(f"{out_dir}/showcase.png")
     print("Saved showcase.png")

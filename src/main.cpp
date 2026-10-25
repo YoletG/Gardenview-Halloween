@@ -6,7 +6,7 @@
 #include "data.h"
 #include "AppManager.h"
 #include "AppDrawingPad.h"
-#include "AppGame.h"
+#include "AppArcade.h"
 #include "AppSystemMonitor.h"
 
 // Hardware instances
@@ -15,7 +15,7 @@ XPT2046 touch = XPT2046(SPI, TOUCHSCREEN_CS_PIN, TOUCHSCREEN_IRQ_PIN);
 
 // Multi-app instances
 AppDrawingPad drawingPadApp;
-AppGame gameApp;
+AppArcade arcadeApp;
 AppSystemMonitor sysMonApp;
 
 AppManager appManager(tft, touch);
@@ -89,7 +89,7 @@ void setup() {
     // 7. Register apps with OS Manager
     sysMonApp.setTouchController(&touch);
     appManager.registerApp(&drawingPadApp);
-    appManager.registerApp(&gameApp);
+    appManager.registerApp(&arcadeApp);
     appManager.registerApp(&sysMonApp);
 
     // 8. Launch Home Screen
