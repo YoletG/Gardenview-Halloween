@@ -9,8 +9,22 @@ public:
     enum State {
         STATE_TITLE,
         STATE_PLAYING,
+        STATE_DANDY_SHOP,
         STATE_FLOOR_CLEAR,
         STATE_GAME_OVER
+    };
+
+    enum TwistedType {
+        TWISTED_DANDY = 0,   // Corrupted pumpkin-petal flower, wide detection
+        TWISTED_POPPY,       // Corrupted bubble rabbit, erratic & fast
+        TWISTED_BOXTEN       // Corrupted music box, charges in burst sprints
+    };
+
+    enum TwistedAI {
+        AI_PATROL = 0,
+        AI_INVESTIGATE,      // Noise heard! Yellow '?'
+        AI_CHASE,            // Hunting Gourdy! Red '!'
+        AI_STUNNED           // Blown away by flashlight! Spinning '*'
     };
 
 private:
@@ -20,16 +34,16 @@ private:
     static const int ARENA_LEFT = 6;
     static const int ARENA_RIGHT = 234;
     static const int ARENA_TOP = 52;
-    static const int ARENA_BOTTOM = 296;
+    static const int ARENA_BOTTOM = 282;
 
     // Gourdy Player
     float gx = 120.0f;
-    float gy = 250.0f;
+    float gy = 245.0f;
     float prevGx = 120.0f;
-    float prevGy = 250.0f;
+    float prevGy = 245.0f;
     float targetX = 120.0f;
-    float targetY = 250.0f;
-    float facingAngle = -1.57f; // Radians, facing up initially
+    float targetY = 245.0f;
+    float facingAngle = -1.57f;
     float walkAnimPhase = 0.0f;
     bool isMoving = false;
 
@@ -39,14 +53,17 @@ private:
     unsigned long sugarRushUntil = 0;
     unsigned long invulnerableUntil = 0;
 
-    // Game Progression
-    int floorLevel = 1;
+    // Inventory & Abilities
+    int candiesStocked = 1;       // Candy Corn for Sugar Rush
+    int flashlightCharges = 2;    // Flashlight for Stun
+    unsigned long flashlightCooldown = 0;
+    unsigned long stunFlashVisualUntil = 0;
+
+    // Currency & Scoring
+    int ichorWallet = 0;          // Total research currency saved across floors
     uint32_t score = 0;
     uint32_t highScore = 0;
-    int ichorCollected = 0;
-    int ichorTotal = 4;
-    float machineProgress = 0.0f; // 0.0 .. 100.0%
-    bool elevatorUnlocked = false;
+    int floorLevel = 1;
 
     // Pillars / Obstacles for kiting (Center & Flanks)
     struct Obstacle {
@@ -54,83 +71,147 @@ private:
     };
     static const int NUM_OBSTACLES = 4;
     const Obstacle obstacles[NUM_OBSTACLES] = {
-        { 38,  110, 24, 24 },
-        { 178, 110, 24, 24 },
-        { 54,  200, 28, 20 },
-        { 158, 200, 28, 20 }
+        { 34,  105, 24, 24 },
+        { 182, 105, 24, 24 },
+        { 48,  195, 28, 20 },
+        { 164, 195, 28, 20 }
     };
-
-    // Extraction Machine
-    const int MACH_X = 120;
-    const int MACH_Y = 135;
-    const int MACH_W = 34;
-    const int MACH_H = 26;
 
     // Elevator Door (Top Center)
     const int ELEV_X = 120;
     const int ELEV_Y = 56;
-    const int ELEV_W = 44;
+    const int ELEV_W = 46;
     const int ELEV_H = 14;
+    bool elevatorUnlocked = false;
 
-    // Ichor Drops (Glowing Purple Ink)
+    // =========================================================================
+    // 1. EXTRACTION MACHINES & SKILL CHECKS
+    // =========================================================================
+    struct Machine {
+        float x, y;
+        float progress;          // 0.0 .. 100.0%
+        bool completed;
+        bool isExtracting;
+        bool skillCheckActive;
+        float needleAngle;       // Radians 0 .. 2*PI
+        float hitZoneStart;      // Radians
+        float hitZoneWidth;      // Radians
+        unsigned long nextSkillCheckTime;
+    };
+    static const int NUM_MACHINES = 2;
+    Machine machines[NUM_MACHINES];
+
+    // =========================================================================
+    // 2. HALLOWEEN TRICK-OR-TREAT BUCKETS
+    // =========================================================================
+    struct TrickBucket {
+        float x, y;
+        bool opened;
+    };
+    static const int NUM_BUCKETS = 2;
+    TrickBucket buckets[NUM_BUCKETS];
+    char bannerText[36] = "";
+    unsigned long bannerUntil = 0;
+
+    // =========================================================================
+    // 3. ICHOR DROPS
+    // =========================================================================
     struct IchorDrop {
         float x, y;
         bool active;
     };
     static const int MAX_ICHOR = 8;
     IchorDrop ichorList[MAX_ICHOR];
+    int ichorTotal = 5;
 
-    // Candy Powerup
-    struct CandyItem {
-        float x, y;
-        bool active;
-    } candy;
-
-    // Twisted Enemies (Dandy's World Monsters)
+    // =========================================================================
+    // 4. TWISTEDS (MONSTERS)
+    // =========================================================================
     struct TwistedEnemy {
+        TwistedType type;
+        TwistedAI aiState;
         float x, y;
         float prevX, prevY;
-        float patrolX, patrolY;
-        bool chasing;
+        float targetX, targetY;
         float speed;
+        unsigned long stateTimer;
+        unsigned long stunUntil;
+        float walkPhase;
     };
     static const int MAX_TWISTEDS = 3;
     TwistedEnemy twisteds[MAX_TWISTEDS];
     int activeTwisteds = 1;
 
-    // Sugar Rush touch button (Bottom Right)
-    const int BTN_SR_X = 212;
-    const int BTN_SR_Y = 274;
-    const int BTN_SR_R = 18;
-    int candiesStocked = 1;
+    // =========================================================================
+    // 5. HALLOWEEN BLACKOUT EVENT
+    // =========================================================================
+    bool blackoutActive = false;
+    unsigned long blackoutUntil = 0;
+
+    // =========================================================================
+    // BUTTONS
+    // =========================================================================
+    const int BTN_STUN_X = 26;
+    const int BTN_STUN_Y = 302;
+    const int BTN_STUN_R = 16;
+
+    const int BTN_RUSH_X = 214;
+    const int BTN_RUSH_Y = 302;
+    const int BTN_RUSH_R = 16;
 
     // -------------------------------------------------------------------------
-    // Reset Floor / Level Setup
+    // Setup Floor
     // -------------------------------------------------------------------------
     void setupFloor(int floor) {
         floorLevel = floor;
         gx = 120.0f;
-        gy = 255.0f;
+        gy = 245.0f;
         prevGx = gx;
         prevGy = gy;
         targetX = gx;
         targetY = gy;
-        machineProgress = 0.0f;
         elevatorUnlocked = false;
         stamina = MAX_STAMINA;
+        bannerUntil = 0;
 
-        // Ichor count scales with floor
-        ichorTotal = min(MAX_ICHOR, 3 + floorLevel);
-        ichorCollected = 0;
+        // Blackout event on Floor 2+ (25% chance)
+        blackoutActive = (floorLevel >= 2) && (random(100) < 30);
+        blackoutUntil = blackoutActive ? (millis() + 10000) : 0;
 
-        // Preset spawn positions avoiding obstacles
+        // Initialize 2 Extraction Machines
+        machines[0].x = 75.0f;
+        machines[0].y = 145.0f;
+        machines[0].progress = 0.0f;
+        machines[0].completed = false;
+        machines[0].isExtracting = false;
+        machines[0].skillCheckActive = false;
+        machines[0].nextSkillCheckTime = millis() + random(3000, 5000);
+
+        machines[1].x = 165.0f;
+        machines[1].y = 145.0f;
+        machines[1].progress = 0.0f;
+        machines[1].completed = false;
+        machines[1].isExtracting = false;
+        machines[1].skillCheckActive = false;
+        machines[1].nextSkillCheckTime = millis() + random(3000, 5000);
+
+        // Trick or Treat Buckets
+        buckets[0].x = 36.0f;
+        buckets[0].y = 68.0f;
+        buckets[0].opened = false;
+
+        buckets[1].x = 204.0f;
+        buckets[1].y = 230.0f;
+        buckets[1].opened = false;
+
+        // Ichor Spawn Points
+        ichorTotal = min(MAX_ICHOR, 4 + floorLevel);
         const float spawnCoords[8][2] = {
-            { 30, 80 },  { 210, 80 },
-            { 80, 100 }, { 160, 100 },
-            { 30, 160 }, { 210, 160 },
+            { 30, 85 },  { 210, 85 },
+            { 80, 95 },  { 160, 95 },
+            { 32, 160 }, { 208, 160 },
             { 85, 230 }, { 155, 230 }
         };
-
         for (int i = 0; i < MAX_ICHOR; i++) {
             if (i < ichorTotal) {
                 ichorList[i].x = spawnCoords[i][0];
@@ -141,36 +222,37 @@ private:
             }
         }
 
-        // Spawn 1 Candy in arena
-        candy.x = (floorLevel % 2 == 0) ? 120 : 35;
-        candy.y = (floorLevel % 2 == 0) ? 190 : 250;
-        candy.active = true;
-
-        // Configure Twisteds
+        // Twisteds setup based on floor
         activeTwisteds = constrain(1 + (floorLevel - 1) / 2, 1, MAX_TWISTEDS);
         for (int i = 0; i < activeTwisteds; i++) {
-            twisteds[i].x = 40 + i * 80;
-            twisteds[i].y = 80 + (i % 2) * 50;
+            twisteds[i].type = (TwistedType)(i % 3);
+            twisteds[i].aiState = AI_PATROL;
+            twisteds[i].x = 45.0f + i * 75.0f;
+            twisteds[i].y = 75.0f + (i % 2) * 40.0f;
             twisteds[i].prevX = twisteds[i].x;
             twisteds[i].prevY = twisteds[i].y;
-            twisteds[i].patrolX = twisteds[i].x;
-            twisteds[i].patrolY = twisteds[i].y;
-            twisteds[i].chasing = false;
-            twisteds[i].speed = 1.15f + (floorLevel * 0.12f);
+            twisteds[i].targetX = twisteds[i].x;
+            twisteds[i].targetY = twisteds[i].y;
+            twisteds[i].speed = 1.15f + (floorLevel * 0.12f) + (twisteds[i].type == TWISTED_POPPY ? 0.35f : 0.0f);
+            twisteds[i].stateTimer = millis() + random(2000, 4000);
+            twisteds[i].stunUntil = 0;
+            twisteds[i].walkPhase = 0.0f;
         }
     }
 
     void resetGame() {
         score = 0;
         lives = 3;
+        ichorWallet = 0;
         candiesStocked = 1;
+        flashlightCharges = 2;
         sugarRushUntil = 0;
         invulnerableUntil = 0;
         setupFloor(1);
     }
 
     // -------------------------------------------------------------------------
-    // Collision Helpers
+    // Collision Checks
     // -------------------------------------------------------------------------
     bool checkObstacleCollision(float nx, float ny, float radius) {
         for (int i = 0; i < NUM_OBSTACLES; i++) {
@@ -180,21 +262,37 @@ private:
                 return true;
             }
         }
-        // Machine collision
-        if (nx + radius > MACH_X - MACH_W / 2 && nx - radius < MACH_X + MACH_W / 2 &&
-            ny + radius > MACH_Y - MACH_H / 2 && ny - radius < MACH_Y + MACH_H / 2) {
-            return true;
+        // Machine body collision
+        for (int i = 0; i < NUM_MACHINES; i++) {
+            if (nx + radius > machines[i].x - 16 && nx - radius < machines[i].x + 16 &&
+                ny + radius > machines[i].y - 12 && ny - radius < machines[i].y + 12) {
+                return true;
+            }
         }
         return false;
     }
 
     // -------------------------------------------------------------------------
-    // Drawing Helpers (Anti-Aliased Gourdy & World)
+    // Alerts all Twisteds to investigate a noise location (failed skill check, etc)
+    // -------------------------------------------------------------------------
+    void alertTwistedsNoise(float nx, float ny) {
+        for (int i = 0; i < activeTwisteds; i++) {
+            if (twisteds[i].aiState != AI_STUNNED) {
+                twisteds[i].aiState = AI_INVESTIGATE;
+                twisteds[i].targetX = nx;
+                twisteds[i].targetY = ny;
+                twisteds[i].stateTimer = millis() + 4500;
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Drawing Helpers
     // -------------------------------------------------------------------------
     void drawGourdy(TFT_eSPI& tft, int cx, int cy, float angle, bool walking, bool sugarRush, bool blink) {
-        if (blink) return; // Invulnerability blink frame
+        if (blink) return;
 
-        const uint16_t bg = 0x0842; // Arena dark floor
+        const uint16_t bg = 0x0842;
 
         // 1. Sugar Rush Golden Halo
         if (sugarRush) {
@@ -202,132 +300,205 @@ private:
             UI_AA::drawCircle(tft, cx, cy, 15, TFT_MAGENTA, bg);
         }
 
-        // 2. Green Vine Legs (animated)
+        // 2. Green Vine Legs
         int legOff1 = walking ? (int)(sinf(walkAnimPhase) * 3.0f) : 0;
         int legOff2 = walking ? (int)(-sinf(walkAnimPhase) * 3.0f) : 0;
-        tft.fillRect(cx - 5, cy + 9 + legOff1, 3, 4, 0x24C5); // Green vines
+        tft.fillRect(cx - 5, cy + 9 + legOff1, 3, 4, 0x24C5);
         tft.fillRect(cx + 2, cy + 9 + legOff2, 3, 4, 0x24C5);
 
-        // 3. Main Jack-o'-Lantern Pumpkin Head (Composite anti-aliased lobes)
-        // Left & Right pumpkin lobes
-        UI_AA::fillCircle(tft, cx - 4, cy, 7, 0xFA40, bg); // Darker orange
+        // 3. Composite Anti-Aliased Pumpkin Head
+        UI_AA::fillCircle(tft, cx - 4, cy, 7, 0xFA40, bg);
         UI_AA::fillCircle(tft, cx + 4, cy, 7, 0xFA40, bg);
-        // Center main lobe
-        UI_AA::fillCircle(tft, cx, cy, 8, 0xFD20, bg); // Bright pumpkin orange
+        UI_AA::fillCircle(tft, cx, cy, 8, 0xFD20, bg);
 
-        // Segment crease lines
+        // Crease lines & forehead seam
         tft.drawFastVLine(cx - 3, cy - 6, 12, 0xD280);
         tft.drawFastVLine(cx + 3, cy - 6, 12, 0xD280);
-
-        // Head seam (horizontal line across forehead, Dandy's World detail)
         tft.drawFastHLine(cx - 6, cy - 2, 13, 0xB200);
 
-        // 4. Brown Stem & Green Curled Leaf
-        tft.fillRect(cx - 1, cy - 11, 3, 4, 0x69A1); // Woody brown
-        tft.fillRect(cx + 2, cy - 11, 4, 2, 0x24C5); // Curled leaf
-        tft.drawPixel(cx + 4, cy - 12, 0x47E0);
+        // Stem & Leaf
+        tft.fillRect(cx - 1, cy - 11, 3, 4, 0x69A1);
+        tft.fillRect(cx + 2, cy - 11, 4, 2, 0x24C5);
 
-        // 5. Carved Hollow Eyes with Dynamic Pupils
-        // Carved black eye sockets
+        // Carved Eyes & Tracking Pupils
         tft.fillRect(cx - 5, cy - 4, 3, 3, TFT_BLACK);
         tft.fillRect(cx + 2, cy - 4, 3, 3, TFT_BLACK);
-
-        // White pupils tracking facing direction
         int lookDx = (int)constrain(cosf(angle) * 1.5f, -1.0f, 1.0f);
         int lookDy = (int)constrain(sinf(angle) * 1.5f, -1.0f, 1.0f);
         tft.drawPixel(cx - 4 + lookDx, cy - 3 + lookDy, TFT_WHITE);
         tft.drawPixel(cx + 3 + lookDx, cy - 3 + lookDy, TFT_WHITE);
 
-        // 6. Mischievous Fanged Grin
+        // Fanged Grin
         tft.drawFastHLine(cx - 4, cy + 3, 9, TFT_BLACK);
         tft.drawPixel(cx - 3, cy + 4, TFT_BLACK);
         tft.drawPixel(cx + 3, cy + 4, TFT_BLACK);
-        tft.drawPixel(cx, cy + 4, TFT_BLACK);
-        // Little white fangs
         tft.drawPixel(cx - 2, cy + 3, TFT_WHITE);
         tft.drawPixel(cx + 2, cy + 3, TFT_WHITE);
     }
 
-    void drawTwisted(TFT_eSPI& tft, int cx, int cy, bool isChasing) {
+    void drawTwisted(TFT_eSPI& tft, const TwistedEnemy& tw) {
+        int cx = (int)tw.x;
+        int cy = (int)tw.y;
         const uint16_t bg = 0x0842;
-        // Inky shadow body
-        UI_AA::fillCircle(tft, cx, cy, 9, 0x10A2, bg); // Dark inky indigo
-        UI_AA::drawCircle(tft, cx, cy, 10, isChasing ? TFT_RED : 0x3186, bg);
 
-        // Inky dripping tendrils
-        tft.drawFastVLine(cx - 4, cy + 7, 4, 0x10A2);
-        tft.drawFastVLine(cx, cy + 8, 5, 0x10A2);
-        tft.drawFastVLine(cx + 4, cy + 7, 4, 0x10A2);
-
-        // Piercing red eyes
-        tft.fillRect(cx - 4, cy - 3, 3, 3, TFT_RED);
-        tft.fillRect(cx + 2, cy - 3, 3, 3, TFT_RED);
-        tft.drawPixel(cx - 3, cy - 2, TFT_WHITE);
-        tft.drawPixel(cx + 3, cy - 2, TFT_WHITE);
-
-        // Alert exclamation badge if chasing
-        if (isChasing) {
-            UI_AA::fillRoundRect(tft, cx - 4, cy - 18, 9, 11, 2, TFT_RED, bg);
-            tft.setTextColor(TFT_WHITE, TFT_RED);
+        // Status indicator above head
+        if (tw.aiState == AI_CHASE) {
+            tft.setTextColor(TFT_RED, bg);
             tft.setTextDatum(MC_DATUM);
-            tft.drawString("!", cx, cy - 13, 2);
+            tft.drawString("!", cx, cy - 17, 2);
+        } else if (tw.aiState == AI_INVESTIGATE) {
+            tft.setTextColor(TFT_YELLOW, bg);
+            tft.setTextDatum(MC_DATUM);
+            tft.drawString("?", cx, cy - 17, 2);
+        } else if (tw.aiState == AI_STUNNED) {
+            tft.setTextColor(TFT_YELLOW, bg);
+            tft.setTextDatum(MC_DATUM);
+            tft.drawString("***", cx, cy - 17, 1);
+        }
+
+        // Inky Dripping Tendrils
+        tft.drawFastVLine(cx - 7, cy + 7, 6, TFT_BLACK);
+        tft.drawFastVLine(cx - 2, cy + 8, 7, TFT_BLACK);
+        tft.drawFastVLine(cx + 3, cy + 7, 6, TFT_BLACK);
+        tft.drawFastVLine(cx + 7, cy + 6, 5, TFT_BLACK);
+
+        // Corrupted Inky Head
+        UI_AA::fillCircle(tft, cx, cy, 9, 0x1082, bg);
+        UI_AA::drawCircle(tft, cx, cy, 9, TFT_BLACK, bg);
+
+        if (tw.type == TWISTED_DANDY) {
+            // Corrupted Pumpkin Flower Petals
+            for (int p = 0; p < 6; p++) {
+                float rad = p * 1.047f;
+                int px = cx + (int)(cosf(rad) * 11.0f);
+                int py = cy + (int)(sinf(rad) * 11.0f);
+                tft.drawPixel(px, py, 0xFA40);
+            }
+        } else if (tw.type == TWISTED_POPPY) {
+            // Ink Bubbles
+            tft.drawCircle(cx - 7, cy - 8, 3, 0xD81F);
+        } else {
+            // Boxten Box corners
+            tft.drawRect(cx - 7, cy - 7, 14, 14, 0x7BEF);
+        }
+
+        // Piercing Eyes
+        uint16_t eyeCol = (tw.aiState == AI_CHASE) ? TFT_RED : (tw.aiState == AI_INVESTIGATE ? TFT_YELLOW : TFT_WHITE);
+        tft.fillRect(cx - 5, cy - 2, 3, 3, eyeCol);
+        tft.fillRect(cx + 2, cy - 2, 3, 3, eyeCol);
+        tft.drawPixel(cx - 4, cy - 1, TFT_BLACK);
+        tft.drawPixel(cx + 3, cy - 1, TFT_BLACK);
+    }
+
+    void drawMachine(TFT_eSPI& tft, int idx) {
+        const Machine& m = machines[idx];
+        int bx = (int)m.x;
+        int by = (int)m.y;
+
+        // Computer Terminal Frame
+        UI_AA::fillRoundRect(tft, bx - 16, by - 14, 32, 28, 4, 0x18C3, 0x0842);
+        UI_AA::drawRoundRect(tft, bx - 16, by - 14, 32, 28, 4, m.completed ? TFT_GREEN : 0x5AEB, 0x0842);
+
+        // Screen
+        uint16_t screenBg = m.completed ? 0x0320 : 0x0145;
+        tft.fillRect(bx - 12, by - 10, 24, 14, screenBg);
+
+        tft.setTextDatum(MC_DATUM);
+        char pbuf[16];
+        snprintf(pbuf, sizeof(pbuf), "%d%%", (int)m.progress);
+        tft.setTextColor(m.completed ? TFT_GREEN : TFT_CYAN, screenBg);
+        tft.drawString(pbuf, bx, by - 3, 1);
+
+        // Status Indicator LED
+        uint16_t ledCol = m.completed ? TFT_GREEN : (m.isExtracting ? TFT_YELLOW : TFT_RED);
+        UI_AA::fillCircle(tft, bx, by + 8, 3, ledCol, 0x18C3);
+
+        // Skill Check Overlay
+        if (m.skillCheckActive) {
+            int scRadius = 18;
+            UI_AA::drawCircle(tft, bx, by, scRadius, TFT_WHITE, screenBg);
+            // Draw hit zone arc
+            for (float a = m.hitZoneStart; a < m.hitZoneStart + m.hitZoneWidth; a += 0.12f) {
+                int ax = bx + (int)(cosf(a) * scRadius);
+                int ay = by + (int)(sinf(a) * scRadius);
+                tft.drawPixel(ax, ay, TFT_GREEN);
+            }
+            // Draw Needle
+            int nx = bx + (int)(cosf(m.needleAngle) * scRadius);
+            int ny = by + (int)(sinf(m.needleAngle) * scRadius);
+            tft.drawLine(bx, by, nx, ny, TFT_YELLOW);
+
+            tft.setTextColor(TFT_YELLOW, 0x0842);
+            tft.drawString("TAP!", bx, by - 22, 1);
         }
     }
 
-    void drawIchor(TFT_eSPI& tft, int cx, int cy) {
+    void drawTrickBucket(TFT_eSPI& tft, int idx) {
+        const TrickBucket& b = buckets[idx];
+        int bx = (int)b.x;
+        int by = (int)b.y;
         const uint16_t bg = 0x0842;
-        // Floating purple Ichor droplet with white glint
-        int floatY = cy + (int)(sinf((millis() + cx * 10) / 250.0f) * 2.0f);
-        UI_AA::fillCircle(tft, cx, floatY, 5, 0xC81F, bg); // Neon Purple
-        UI_AA::drawCircle(tft, cx, floatY, 5, TFT_WHITE, bg);
-        tft.drawPixel(cx - 1, floatY - 2, TFT_WHITE);
+
+        if (b.opened) {
+            // Opened bucket (spent)
+            UI_AA::drawCircle(tft, bx, by, 7, 0x632C, bg);
+            tft.setTextDatum(MC_DATUM);
+            tft.setTextColor(0x632C, bg);
+            tft.drawString("EMPTY", bx, by + 11, 1);
+        } else {
+            // Bright Halloween Jack-o'-lantern candy bucket
+            UI_AA::fillCircle(tft, bx, by, 8, TFT_ORANGE, bg);
+            UI_AA::drawCircle(tft, bx, by, 8, TFT_YELLOW, bg);
+            // Black handle
+            tft.drawCircle(bx, by - 4, 7, TFT_BLACK);
+            // Carved face
+            tft.drawPixel(bx - 3, by - 1, TFT_BLACK);
+            tft.drawPixel(bx + 3, by - 1, TFT_BLACK);
+            tft.drawFastHLine(bx - 3, by + 3, 7, TFT_BLACK);
+            tft.setTextDatum(MC_DATUM);
+            tft.setTextColor(TFT_YELLOW, bg);
+            tft.drawString("TREAT", bx, by + 12, 1);
+        }
     }
 
-    void drawCandy(TFT_eSPI& tft, int cx, int cy) {
+    void drawIchor(TFT_eSPI& tft, int ix, int iy) {
         const uint16_t bg = 0x0842;
-        // Wrapped Candy: golden center with twist ends
-        UI_AA::fillCircle(tft, cx, cy, 4, TFT_YELLOW, bg);
-        tft.fillRect(cx - 7, cy - 2, 3, 4, TFT_ORANGE);
-        tft.fillRect(cx + 5, cy - 2, 3, 4, TFT_ORANGE);
+        UI_AA::fillCircle(tft, ix, iy, 5, 0xD81F, bg);
+        UI_AA::fillCircle(tft, ix, iy, 2, TFT_WHITE, 0xD81F);
     }
 
     void drawWorldStatic(TFT_eSPI& tft) {
-        // Clear arena
-        tft.fillRect(0, 50, 240, 270, 0x0842); // Dark floor
+        tft.fillScreen(0x0842);
 
-        // Grid lines for Gardenview floor tiles
-        for (int y = ARENA_TOP + 20; y < ARENA_BOTTOM; y += 30) {
-            tft.drawFastHLine(ARENA_LEFT, y, ARENA_RIGHT - ARENA_LEFT, 0x1084);
-        }
-        for (int x = ARENA_LEFT + 25; x < ARENA_RIGHT; x += 30) {
-            tft.drawFastVLine(x, ARENA_TOP, ARENA_BOTTOM - ARENA_TOP, 0x1084);
-        }
+        // Arena outer frame
+        tft.drawRect(ARENA_LEFT, ARENA_TOP, ARENA_RIGHT - ARENA_LEFT, ARENA_BOTTOM - ARENA_TOP, 0x2124);
 
-        // Arena outer border
-        UI_AA::drawRoundRect(tft, ARENA_LEFT - 2, ARENA_TOP - 2, 
-                             (ARENA_RIGHT - ARENA_LEFT) + 4, 
-                             (ARENA_BOTTOM - ARENA_TOP) + 4, 6, 0x31E8, 0x0842);
+        // Top Elevator Door
+        uint16_t elevBorder = elevatorUnlocked ? TFT_GREEN : 0x6B4D;
+        uint16_t elevFill = elevatorUnlocked ? 0x0240 : 0x18C3;
+        UI_AA::fillRoundRect(tft, ELEV_X - ELEV_W / 2, ELEV_Y, ELEV_W, ELEV_H, 3, elevFill, 0x0842);
+        UI_AA::drawRoundRect(tft, ELEV_X - ELEV_W / 2, ELEV_Y, ELEV_W, ELEV_H, 3, elevBorder, 0x0842);
+        tft.setTextDatum(MC_DATUM);
+        tft.setTextColor(elevBorder, elevFill);
+        tft.drawString(elevatorUnlocked ? "OPEN" : "ELEVATOR", ELEV_X, ELEV_Y + 7, 1);
 
-        // Pillars / Obstacles
+        // Obstacles (Gardenview Stone Pillars)
         for (int i = 0; i < NUM_OBSTACLES; i++) {
             const Obstacle& ob = obstacles[i];
-            UI_AA::fillRoundRect(tft, ob.x, ob.y, ob.w, ob.h, 4, 0x2125, 0x0842);
+            UI_AA::fillRoundRect(tft, ob.x, ob.y, ob.w, ob.h, 4, 0x18C3, 0x0842);
             UI_AA::drawRoundRect(tft, ob.x, ob.y, ob.w, ob.h, 4, 0x4228, 0x0842);
+            tft.fillRect(ob.x + 3, ob.y + 3, ob.w - 6, ob.h - 6, 0x1082);
         }
 
-        // Extraction Machine
-        UI_AA::fillRoundRect(tft, MACH_X - MACH_W / 2, MACH_Y - MACH_H / 2, MACH_W, MACH_H, 4, 0x18E3, 0x0842);
-        UI_AA::drawRoundRect(tft, MACH_X - MACH_W / 2, MACH_Y - MACH_H / 2, MACH_W, MACH_H, 4, TFT_CYAN, 0x0842);
-        tft.setTextDatum(MC_DATUM);
-        tft.setTextColor(TFT_WHITE, 0x18E3);
-        tft.drawString("EXT", MACH_X, MACH_Y - 4, 1);
+        // Draw Machines
+        for (int i = 0; i < NUM_MACHINES; i++) {
+            drawMachine(tft, i);
+        }
 
-        // Elevator Door (Top)
-        uint16_t elevCol = elevatorUnlocked ? TFT_GREEN : 0x9000;
-        UI_AA::fillRoundRect(tft, ELEV_X - ELEV_W / 2, ELEV_Y, ELEV_W, ELEV_H, 3, elevCol, 0x0842);
-        UI_AA::drawRoundRect(tft, ELEV_X - ELEV_W / 2, ELEV_Y, ELEV_W, ELEV_H, 3, TFT_WHITE, 0x0842);
-        tft.setTextColor(TFT_WHITE, elevCol);
-        tft.drawString(elevatorUnlocked ? "OPEN" : "EXIT", ELEV_X, ELEV_Y + 7, 1);
+        // Draw Trick Buckets
+        for (int i = 0; i < NUM_BUCKETS; i++) {
+            drawTrickBucket(tft, i);
+        }
     }
 
     void drawHUD(TFT_eSPI& tft) {
@@ -335,7 +506,7 @@ private:
         tft.fillRect(0, 26, 240, 24, 0x1082);
         tft.drawFastHLine(0, 50, 240, 0x2965);
 
-        // < ARC Button (x: 4..48, y: 28..47)
+        // < ARC Button
         UI_AA::fillRoundRect(tft, 4, 28, 44, 20, 3, 0x2124, 0x1082);
         UI_AA::drawRoundRect(tft, 4, 28, 44, 20, 3, TFT_CYAN, 0x1082);
         tft.setTextColor(TFT_CYAN, 0x2124);
@@ -350,39 +521,64 @@ private:
         tft.drawString(buf, 54, 30, 2);
 
         // Ichor Count
-        snprintf(buf, sizeof(buf), "Ichor: %d/%d", ichorCollected, ichorTotal);
+        snprintf(buf, sizeof(buf), "ICHOR:%d", ichorWallet);
         tft.setTextColor(0xD81F, 0x1082);
-        tft.drawString(buf, 88, 30, 2);
+        tft.drawString(buf, 86, 30, 2);
 
-        // Gourdy Lives (Jack-o'-lantern hearts)
+        // Gourdy Lives (Pumpkin hearts)
         for (int i = 0; i < 3; i++) {
-            int hx = 188 + i * 16;
+            int hx = 186 + i * 16;
             if (i < lives) {
-                UI_AA::fillCircle(tft, hx, 38, 5, 0xFD20, 0x1082); // Orange pumpkin
-                tft.drawPixel(hx, 34, 0x24C5); // Green stem
+                UI_AA::fillCircle(tft, hx, 38, 5, 0xFD20, 0x1082);
+                tft.drawPixel(hx, 34, 0x24C5);
             } else {
                 UI_AA::drawCircle(tft, hx, 38, 5, 0x52AA, 0x1082);
             }
         }
 
-        // Sugar Rush Touch Button (Bottom Right)
+        // Bottom Toolbar (y: 284..320)
+        tft.fillRect(0, 284, 240, 36, 0x1082);
+        tft.drawFastHLine(0, 284, 240, 0x2965);
+
+        // 1. Flashlight Stun Button (Left)
+        bool stunReady = (flashlightCharges > 0) && (millis() > flashlightCooldown);
+        uint16_t stunCol = stunReady ? TFT_YELLOW : 0x3186;
+        UI_AA::fillCircle(tft, BTN_STUN_X, BTN_STUN_Y, BTN_STUN_R, stunCol, 0x1082);
+        UI_AA::drawCircle(tft, BTN_STUN_X, BTN_STUN_Y, BTN_STUN_R, TFT_WHITE, 0x1082);
+        tft.setTextDatum(MC_DATUM);
+        tft.setTextColor(TFT_BLACK, stunCol);
+        char sbuf[8];
+        snprintf(sbuf, sizeof(sbuf), "STUN(%d)", flashlightCharges);
+        tft.drawString(sbuf, BTN_STUN_X, BTN_STUN_Y, 1);
+
+        // 2. Stamina Meter (Center)
+        tft.setTextColor(0x94B2, 0x1082);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("STAMINA", 120, 292, 1);
+        tft.drawRect(58, 301, 124, 8, TFT_WHITE);
+        int stamW = (int)((stamina * 122.0f) / MAX_STAMINA);
+        tft.fillRect(59, 302, stamW, 6, stamina > 30.0f ? TFT_GREEN : TFT_RED);
+        tft.fillRect(59 + stamW, 302, 122 - stamW, 6, TFT_BLACK);
+
+        // 3. Sugar Rush Candy Button (Right)
         bool hasBoost = (candiesStocked > 0) || (millis() < sugarRushUntil);
         uint16_t btnCol = (millis() < sugarRushUntil) ? TFT_MAGENTA : (hasBoost ? TFT_ORANGE : 0x3186);
-        UI_AA::fillCircle(tft, BTN_SR_X, BTN_SR_Y, BTN_SR_R, btnCol, 0x0842);
-        UI_AA::drawCircle(tft, BTN_SR_X, BTN_SR_Y, BTN_SR_R, TFT_WHITE, 0x0842);
-        tft.setTextDatum(MC_DATUM);
+        UI_AA::fillCircle(tft, BTN_RUSH_X, BTN_RUSH_Y, BTN_RUSH_R, btnCol, 0x1082);
+        UI_AA::drawCircle(tft, BTN_RUSH_X, BTN_RUSH_Y, BTN_RUSH_R, TFT_WHITE, 0x1082);
         tft.setTextColor(TFT_WHITE, btnCol);
-        tft.drawString(millis() < sugarRushUntil ? "RUSH!" : "CANDY", BTN_SR_X, BTN_SR_Y, 1);
+        char cbuf[8];
+        snprintf(cbuf, sizeof(cbuf), "RUSH(%d)", candiesStocked);
+        tft.drawString((millis() < sugarRushUntil) ? "BOOST!" : cbuf, BTN_RUSH_X, BTN_RUSH_Y, 1);
     }
 
-    void drawMachineProgress(TFT_eSPI& tft) {
-        // Progress bar below machine
-        int bx = MACH_X - MACH_W / 2;
-        int by = MACH_Y + MACH_H / 2 + 3;
-        tft.drawRect(bx, by, MACH_W, 5, TFT_WHITE);
-        int fillW = (int)((machineProgress * (MACH_W - 2)) / 100.0f);
-        tft.fillRect(bx + 1, by + 1, fillW, 3, TFT_GREEN);
-        tft.fillRect(bx + 1 + fillW, by + 1, (MACH_W - 2) - fillW, 3, TFT_BLACK);
+    void drawBanner(TFT_eSPI& tft) {
+        if (millis() < bannerUntil) {
+            UI_AA::fillRoundRect(tft, 20, 68, 200, 26, 4, 0x2A15, 0x0842);
+            UI_AA::drawRoundRect(tft, 20, 68, 200, 26, 4, TFT_YELLOW, 0x0842);
+            tft.setTextDatum(MC_DATUM);
+            tft.setTextColor(TFT_WHITE, 0x2A15);
+            tft.drawString(bannerText, 120, 81, 2);
+        }
     }
 
 public:
@@ -405,40 +601,113 @@ public:
         tft.drawString("< ARC", 26, 38, 1);
 
         tft.setTextColor(TFT_CYAN, 0x1082);
-        tft.setTextDatum(MC_DATUM);
         tft.drawString("DANDY'S WORLD", 140, 38, 2);
 
         // Big Gourdy Illustration
-        drawGourdy(tft, 120, 110, -1.57f, false, true, false);
+        drawGourdy(tft, 120, 95, -1.57f, false, true, false);
 
-        // Title Cards
+        // Titles
         tft.setTextColor(TFT_ORANGE, TFT_BLACK);
         tft.setTextDatum(MC_DATUM);
-        tft.drawString("GARDENVIEW", 120, 138, 4);
+        tft.drawString("GARDENVIEW", 120, 126, 4);
         tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-        tft.drawString("HALLOWEEN", 120, 158, 4);
+        tft.drawString("HALLOWEEN", 120, 148, 4);
 
+        // Gourdy Stats (Authentic Dandy's World Star Ratings)
+        tft.setTextDatum(TL_DATUM);
         tft.setTextColor(0xD81F, TFT_BLACK);
-        tft.drawString("Collect Ichor & Dodge Twisteds!", 120, 180, 2);
+        tft.drawString("GOURDY'S TOON STATS:", 34, 172, 2);
+        tft.setTextColor(0xAD75, TFT_BLACK);
+        tft.drawString("Speed:  ***** (Sugar Rush)", 34, 192, 1);
+        tft.drawString("Stamina: ****  Stealth: *", 34, 204, 1);
+        tft.drawString("Extract: ***   Skill Check: **", 34, 216, 1);
 
-        tft.setTextColor(0x94B2, TFT_BLACK);
-        tft.drawString("Touch to steer Gourdy Holloway", 120, 200, 2);
-        tft.drawString("Extract the machine to open Elevator", 120, 216, 1);
-
+        // High Score
         char hbuf[32];
         snprintf(hbuf, sizeof(hbuf), "High Score: %u", (unsigned)highScore);
-        tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-        tft.drawString(hbuf, 120, 235, 2);
+        tft.setTextColor(TFT_CYAN, TFT_BLACK);
+        tft.drawString(hbuf, 60, 234, 2);
 
         // Start Button
-        UI_AA::fillRoundRect(tft, 30, 258, 180, 42, 6, TFT_GREEN, TFT_BLACK);
-        UI_AA::drawRoundRect(tft, 30, 258, 180, 42, 6, TFT_WHITE, TFT_BLACK);
+        UI_AA::fillRoundRect(tft, 25, 258, 190, 42, 6, TFT_GREEN, TFT_BLACK);
+        UI_AA::drawRoundRect(tft, 25, 258, 190, 42, 6, TFT_WHITE, TFT_BLACK);
         tft.setTextColor(TFT_BLACK, TFT_GREEN);
-        tft.drawString("TAP TO PLAY", 120, 279, 4);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("ENTER GARDENVIEW", 120, 279, 4);
+    }
+
+    void drawDandyShop(TFT_eSPI& tft) {
+        tft.fillScreen(0x0821);
+
+        // Header
+        tft.fillRect(0, 26, 240, 24, 0x1082);
+        tft.setTextDatum(MC_DATUM);
+        tft.setTextColor(TFT_YELLOW, 0x1082);
+        tft.drawString("DANDY'S ELEVATOR SHOP", 120, 38, 2);
+
+        // Dandy Illustration (With Halloween Top Hat & Bowtie)
+        int dx = 120, dy = 80;
+        // Flower Petals
+        for (int i = 0; i < 6; i++) {
+            float a = i * 1.047f;
+            UI_AA::fillCircle(tft, dx + (int)(cosf(a) * 16), dy + (int)(sinf(a) * 16), 8, TFT_YELLOW, 0x0821);
+        }
+        UI_AA::fillCircle(tft, dx, dy, 12, TFT_WHITE, 0x0821);
+        tft.drawPixel(dx - 4, dy - 2, TFT_BLACK);
+        tft.drawPixel(dx + 4, dy - 2, TFT_BLACK);
+        tft.drawFastHLine(dx - 5, dy + 4, 11, TFT_BLACK);
+        // Halloween Witch/Top Hat
+        tft.fillRect(dx - 14, dy - 16, 28, 4, 0x3810);
+        tft.fillRect(dx - 8, dy - 26, 16, 10, 0x3810);
+        tft.drawFastHLine(dx - 8, dy - 18, 16, TFT_ORANGE);
+
+        // Dandy Speech Bubble
+        tft.setTextColor(TFT_WHITE, 0x0821);
+        tft.drawString("\"Happy Halloween, Gourdy!\"", 120, 115, 2);
+        char ibuf[32];
+        snprintf(ibuf, sizeof(ibuf), "Your Ichor: %d", ichorWallet);
+        tft.setTextColor(0xD81F, 0x0821);
+        tft.drawString(ibuf, 120, 132, 2);
+
+        // Shop Item 1: Chocolate Bar (+1 Heart) - Cost: 8 Ichor
+        UI_AA::fillRoundRect(tft, 14, 150, 212, 34, 4, 0x18C3, 0x0821);
+        UI_AA::drawRoundRect(tft, 14, 150, 212, 34, 4, (ichorWallet >= 8) ? TFT_GREEN : 0x4228, 0x0821);
+        tft.setTextDatum(TL_DATUM);
+        tft.setTextColor(TFT_WHITE, 0x18C3);
+        tft.drawString("1. CHOCOLATE BAR (+1 Heart)", 22, 154, 2);
+        tft.setTextColor(0xD81F, 0x18C3);
+        tft.drawString("Cost: 8 Ichor [BUY]", 22, 168, 1);
+
+        // Shop Item 2: Candy Corn (+1 Sugar Rush) - Cost: 5 Ichor
+        UI_AA::fillRoundRect(tft, 14, 190, 212, 34, 4, 0x18C3, 0x0821);
+        UI_AA::drawRoundRect(tft, 14, 190, 212, 34, 4, (ichorWallet >= 5) ? TFT_ORANGE : 0x4228, 0x0821);
+        tft.setTextColor(TFT_WHITE, 0x18C3);
+        tft.drawString("2. CANDY CORN (+1 Speed Boost)", 22, 194, 2);
+        tft.setTextColor(0xD81F, 0x18C3);
+        tft.drawString("Cost: 5 Ichor [BUY]", 22, 208, 1);
+
+        // Shop Item 3: Flashlight Battery (+2 Stuns) - Cost: 6 Ichor
+        UI_AA::fillRoundRect(tft, 14, 230, 212, 34, 4, 0x18C3, 0x0821);
+        UI_AA::drawRoundRect(tft, 14, 230, 212, 34, 4, (ichorWallet >= 6) ? TFT_YELLOW : 0x4228, 0x0821);
+        tft.setTextColor(TFT_WHITE, 0x18C3);
+        tft.drawString("3. FLASHLIGHT BATTERY (+2 Stun)", 22, 234, 2);
+        tft.setTextColor(0xD81F, 0x18C3);
+        tft.drawString("Cost: 6 Ichor [BUY]", 22, 248, 1);
+
+        // Continue Button
+        UI_AA::fillRoundRect(tft, 25, 274, 190, 36, 6, TFT_CYAN, 0x0821);
+        UI_AA::drawRoundRect(tft, 25, 274, 190, 36, 6, TFT_WHITE, 0x0821);
+        tft.setTextDatum(MC_DATUM);
+        tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        char cbuf[32];
+        snprintf(cbuf, sizeof(cbuf), "ENTER FLOOR %d >", floorLevel + 1);
+        tft.drawString(cbuf, 120, 292, 4);
     }
 
     void onUpdate(TFT_eSPI& tft, const TouchPoint& touch, unsigned long dt) {
+        // ---------------------------------------------------------------------
         // Title Screen Interaction
+        // ---------------------------------------------------------------------
         if (state == STATE_TITLE) {
             if (touch.justPressed && touch.y > 50) {
                 resetGame();
@@ -449,7 +718,43 @@ public:
             return;
         }
 
+        // ---------------------------------------------------------------------
+        // Dandy's Halloween Shop Interaction
+        // ---------------------------------------------------------------------
+        if (state == STATE_DANDY_SHOP) {
+            if (touch.justPressed) {
+                // Item 1: Chocolate Bar
+                if (touch.y >= 150 && touch.y <= 184 && ichorWallet >= 8) {
+                    ichorWallet -= 8;
+                    lives = min(3, lives + 1);
+                    drawDandyShop(tft);
+                }
+                // Item 2: Candy Corn
+                else if (touch.y >= 190 && touch.y <= 224 && ichorWallet >= 5) {
+                    ichorWallet -= 5;
+                    candiesStocked++;
+                    drawDandyShop(tft);
+                }
+                // Item 3: Flashlight Battery
+                else if (touch.y >= 230 && touch.y <= 264 && ichorWallet >= 6) {
+                    ichorWallet -= 6;
+                    flashlightCharges += 2;
+                    drawDandyShop(tft);
+                }
+                // Continue to Next Floor
+                else if (touch.y >= 274 && touch.y <= 312) {
+                    setupFloor(floorLevel + 1);
+                    state = STATE_PLAYING;
+                    drawWorldStatic(tft);
+                    drawHUD(tft);
+                }
+            }
+            return;
+        }
+
+        // ---------------------------------------------------------------------
         // Game Over Interaction
+        // ---------------------------------------------------------------------
         if (state == STATE_GAME_OVER) {
             if (touch.justPressed && touch.y > 50) {
                 resetGame();
@@ -460,16 +765,16 @@ public:
             return;
         }
 
+        // ---------------------------------------------------------------------
         // Floor Clear Cutscene
+        // ---------------------------------------------------------------------
         if (state == STATE_FLOOR_CLEAR) {
             static unsigned long clearTimer = 0;
             if (clearTimer == 0) clearTimer = millis();
-            if (millis() - clearTimer > 1500) {
+            if (millis() - clearTimer > 1200) {
                 clearTimer = 0;
-                setupFloor(floorLevel + 1);
-                state = STATE_PLAYING;
-                drawWorldStatic(tft);
-                drawHUD(tft);
+                state = STATE_DANDY_SHOP;
+                drawDandyShop(tft);
             }
             return;
         }
@@ -477,26 +782,57 @@ public:
         // =====================================================================
         // PLAYING STATE
         // =====================================================================
-        // 1. Touch Input: Sugar Rush Button or Movement Steer
+
+        // 1. Touch Input: Flashlight, Sugar Rush, or Arena Movement
         if (touch.pressed) {
-            // Check Sugar Rush Candy button (x: 190..235, y: 250..300)
-            int bdx = (int)touch.x - BTN_SR_X;
-            int bdy = (int)touch.y - BTN_SR_Y;
-            if (bdx * bdx + bdy * bdy <= (BTN_SR_R + 6) * (BTN_SR_R + 6)) {
-                if (touch.justPressed && candiesStocked > 0 && millis() > sugarRushUntil) {
-                    candiesStocked--;
-                    sugarRushUntil = millis() + 4500; // 4.5 seconds Sugar Rush!
+            // Flashlight Stun Button (x: 10..42, y: 286..318)
+            int sdx = (int)touch.x - BTN_STUN_X;
+            int sdy = (int)touch.y - BTN_STUN_Y;
+            if (sdx * sdx + sdy * sdy <= (BTN_STUN_R + 6) * (BTN_STUN_R + 6)) {
+                if (touch.justPressed && flashlightCharges > 0 && millis() > flashlightCooldown) {
+                    flashlightCharges--;
+                    flashlightCooldown = millis() + 4000;
+                    stunFlashVisualUntil = millis() + 300;
+
+                    // Stun Twisteds in front of Gourdy
+                    for (int i = 0; i < activeTwisteds; i++) {
+                        float tdx = twisteds[i].x - gx;
+                        float tdy = twisteds[i].y - gy;
+                        float dist = sqrtf(tdx * tdx + tdy * tdy);
+                        if (dist < 80.0f) {
+                            twisteds[i].aiState = AI_STUNNED;
+                            twisteds[i].stunUntil = millis() + 2500;
+                        }
+                    }
+                    snprintf(bannerText, sizeof(bannerText), "FLASH! TWISTED STUNNED!");
+                    bannerUntil = millis() + 1500;
                     drawHUD(tft);
                 }
-            } else if (touch.y >= ARENA_TOP && touch.y <= ARENA_BOTTOM) {
-                targetX = constrain((float)touch.x, (float)ARENA_LEFT + 12, (float)ARENA_RIGHT - 12);
-                targetY = constrain((float)touch.y, (float)ARENA_TOP + 12, (float)ARENA_BOTTOM - 12);
+            }
+            // Sugar Rush Candy button (x: 198..230, y: 286..318)
+            else {
+                int rdx = (int)touch.x - BTN_RUSH_X;
+                int rdy = (int)touch.y - BTN_RUSH_Y;
+                if (rdx * rdx + rdy * rdy <= (BTN_RUSH_R + 6) * (BTN_RUSH_R + 6)) {
+                    if (touch.justPressed && candiesStocked > 0 && millis() > sugarRushUntil) {
+                        candiesStocked--;
+                        sugarRushUntil = millis() + 4500;
+                        snprintf(bannerText, sizeof(bannerText), "SUGAR RUSH ACTIVATED!");
+                        bannerUntil = millis() + 1500;
+                        drawHUD(tft);
+                    }
+                }
+                // Arena Steering
+                else if (touch.y >= ARENA_TOP && touch.y <= ARENA_BOTTOM) {
+                    targetX = constrain((float)touch.x, (float)ARENA_LEFT + 12, (float)ARENA_RIGHT - 12);
+                    targetY = constrain((float)touch.y, (float)ARENA_TOP + 12, (float)ARENA_BOTTOM - 12);
+                }
             }
         }
 
         // 2. Gourdy Physics & Movement
         bool hasRush = (millis() < sugarRushUntil);
-        float currentSpeed = hasRush ? 3.6f : 2.4f;
+        float currentSpeed = hasRush ? 3.5f : 2.3f;
 
         float dx = targetX - gx;
         float dy = targetY - gy;
@@ -507,144 +843,227 @@ public:
             facingAngle = atan2f(dy, dx);
             walkAnimPhase += 0.35f;
 
+            if (stamina > 0.0f) {
+                stamina = max(0.0f, stamina - (hasRush ? 0.08f : 0.04f));
+            } else {
+                currentSpeed *= 0.65f;
+            }
+
             float stepX = (dx / dist) * min(dist, currentSpeed);
             float stepY = (dy / dist) * min(dist, currentSpeed);
-
             float nextX = gx + stepX;
             float nextY = gy + stepY;
 
-            // Obstacle & Arena Boundary Collision
             if (!checkObstacleCollision(nextX, gy, 8.0f)) {
                 gx = constrain(nextX, (float)ARENA_LEFT + 8, (float)ARENA_RIGHT - 8);
             }
             if (!checkObstacleCollision(gx, nextY, 8.0f)) {
                 gy = constrain(nextY, (float)ARENA_TOP + 8, (float)ARENA_BOTTOM - 8);
             }
-
-            // Stamina drain
-            if (!hasRush) {
-                stamina = max(0.0f, stamina - 0.2f);
-            }
         } else {
             isMoving = false;
-            // Stamina recovery when resting
-            stamina = min(MAX_STAMINA, stamina + 0.4f);
+            stamina = min(MAX_STAMINA, stamina + 0.20f);
         }
 
-        // 3. Ichor Collection
-        for (int i = 0; i < ichorTotal; i++) {
-            if (ichorList[i].active) {
-                float idx = gx - ichorList[i].x;
-                float idy = gy - ichorList[i].y;
-                if (idx * idx + idy * idy < 14.0f * 14.0f) {
-                    ichorList[i].active = false;
-                    ichorCollected++;
-                    score += 50 * floorLevel;
-                    // Erase Ichor spot cleanly
-                    tft.fillRect((int)ichorList[i].x - 8, (int)ichorList[i].y - 8, 16, 16, 0x0842);
-                    drawHUD(tft);
+        // 3. Extraction Machines & Skill Checks
+        bool allCompleted = true;
+        for (int i = 0; i < NUM_MACHINES; i++) {
+            Machine& m = machines[i];
+            if (!m.completed) allCompleted = false;
+
+            float mDist = hypotf(gx - m.x, gy - m.y);
+            bool inRange = (mDist < 26.0f);
+            m.isExtracting = inRange && !m.completed;
+
+            if (m.isExtracting) {
+                // Extracting progress
+                m.progress = min(100.0f, m.progress + (dt * 0.015f));
+                score += 1;
+
+                if (m.progress >= 100.0f) {
+                    m.completed = true;
+                    m.skillCheckActive = false;
+                    score += 200;
+                    snprintf(bannerText, sizeof(bannerText), "GENERATOR %d EXTRACTED!", i + 1);
+                    bannerUntil = millis() + 1800;
                 }
+
+                // Trigger Skill Check QTE
+                if (!m.skillCheckActive && millis() > m.nextSkillCheckTime && !m.completed) {
+                    m.skillCheckActive = true;
+                    m.needleAngle = 0.0f;
+                    m.hitZoneStart = random(10, 45) * 0.1f;
+                    m.hitZoneWidth = 0.65f;
+                }
+
+                // Skill Check Needle Movement & Input
+                if (m.skillCheckActive) {
+                    m.needleAngle += dt * 0.007f;
+
+                    // Tap during skill check
+                    if (touch.justPressed) {
+                        float diff = fabsf(m.needleAngle - (m.hitZoneStart + m.hitZoneWidth / 2.0f));
+                        if (diff <= m.hitZoneWidth / 2.0f) {
+                            // GREAT / GOOD HIT!
+                            m.progress = min(100.0f, m.progress + 14.0f);
+                            score += 50;
+                            snprintf(bannerText, sizeof(bannerText), "SKILL CHECK: GREAT HIT!");
+                            bannerUntil = millis() + 1000;
+                        } else {
+                            // FAILED HIT!
+                            m.progress = max(0.0f, m.progress - 5.0f);
+                            snprintf(bannerText, sizeof(bannerText), "SKILL CHECK FAILED!");
+                            bannerUntil = millis() + 1200;
+                            alertTwistedsNoise(m.x, m.y); // Alert Twisteds!
+                        }
+                        m.skillCheckActive = false;
+                        m.nextSkillCheckTime = millis() + random(3500, 5500);
+                    } else if (m.needleAngle >= 6.28f) {
+                        // Timed out missed needle
+                        m.progress = max(0.0f, m.progress - 5.0f);
+                        snprintf(bannerText, sizeof(bannerText), "MISSED SKILL CHECK!");
+                        bannerUntil = millis() + 1200;
+                        alertTwistedsNoise(m.x, m.y);
+                        m.skillCheckActive = false;
+                        m.nextSkillCheckTime = millis() + random(3500, 5500);
+                    }
+                }
+            } else {
+                m.skillCheckActive = false;
             }
         }
 
-        // 4. Candy Collection
-        if (candy.active) {
-            float cdx = gx - candy.x;
-            float cdy = gy - candy.y;
-            if (cdx * cdx + cdy * cdy < 14.0f * 14.0f) {
-                candy.active = false;
-                candiesStocked = min(3, candiesStocked + 1);
-                score += 100;
-                tft.fillRect((int)candy.x - 10, (int)candy.y - 6, 20, 12, 0x0842);
-                drawHUD(tft);
-            }
-        }
-
-        // 5. Machine Extraction
-        float mdx = gx - MACH_X;
-        float mdy = gy - MACH_Y;
-        if (mdx * mdx + mdy * mdy < 36.0f * 36.0f && machineProgress < 100.0f) {
-            machineProgress += 0.65f;
-            score += 1;
-            drawMachineProgress(tft);
-            if (machineProgress >= 100.0f) {
-                score += 250 * floorLevel;
-            }
-        }
-
-        // Check if Elevator should unlock
-        if (!elevatorUnlocked && ichorCollected >= ichorTotal && machineProgress >= 100.0f) {
+        // Elevator Door Unlocking
+        if (allCompleted && !elevatorUnlocked) {
             elevatorUnlocked = true;
-            // Redraw elevator green
-            UI_AA::fillRoundRect(tft, ELEV_X - ELEV_W / 2, ELEV_Y, ELEV_W, ELEV_H, 3, TFT_GREEN, 0x0842);
-            UI_AA::drawRoundRect(tft, ELEV_X - ELEV_W / 2, ELEV_Y, ELEV_W, ELEV_H, 3, TFT_WHITE, 0x0842);
-            tft.setTextDatum(MC_DATUM);
-            tft.setTextColor(TFT_WHITE, TFT_GREEN);
-            tft.drawString("OPEN", ELEV_X, ELEV_Y + 7, 1);
+            snprintf(bannerText, sizeof(bannerText), "ELEVATOR UNLOCKED! ESCAPE!");
+            bannerUntil = millis() + 2500;
+            // Draw updated elevator
+            drawWorldStatic(tft);
+            drawHUD(tft);
         }
 
-        // 6. Elevator Exit Trigger
-        if (elevatorUnlocked && fabsf(gx - ELEV_X) < 18.0f && gy < ELEV_Y + ELEV_H + 8) {
+        // 4. Elevator Entry Check
+        if (elevatorUnlocked && gy <= ELEV_Y + ELEV_H + 8 && fabsf(gx - ELEV_X) < ELEV_W / 2) {
+            score += 500;
             state = STATE_FLOOR_CLEAR;
-            score += 500 * floorLevel;
-            if (score > highScore) highScore = score;
-
-            // Floor clear banner
-            UI_AA::fillRoundRect(tft, 25, 140, 190, 60, 6, 0x0400, 0x0842);
-            UI_AA::drawRoundRect(tft, 25, 140, 190, 60, 6, TFT_GREEN, 0x0842);
+            UI_AA::fillRoundRect(tft, 30, 130, 180, 54, 6, 0x0320, 0x0842);
+            UI_AA::drawRoundRect(tft, 30, 130, 180, 54, 6, TFT_GREEN, 0x0842);
             tft.setTextDatum(MC_DATUM);
-            tft.setTextColor(TFT_GREEN, 0x0400);
-            tft.drawString("FLOOR CLEARED!", 120, 160, 4);
-            tft.setTextColor(TFT_WHITE, 0x0400);
-            tft.drawString("Ascending to Next Floor...", 120, 185, 2);
+            tft.setTextColor(TFT_GREEN, 0x0320);
+            tft.drawString("FLOOR COMPLETE!", 120, 148, 2);
+            tft.setTextColor(TFT_WHITE, 0x0320);
+            tft.drawString("Entering Dandy's Elevator...", 120, 168, 1);
             return;
         }
 
-        // 7. Twisted Enemy AI & Movement
+        // 5. Trick-or-Treat Bucket Collisions
+        for (int i = 0; i < NUM_BUCKETS; i++) {
+            if (!buckets[i].opened && hypotf(gx - buckets[i].x, gy - buckets[i].y) < 18.0f) {
+                buckets[i].opened = true;
+                int roll = random(100);
+                if (roll < 40) {
+                    candiesStocked++;
+                    snprintf(bannerText, sizeof(bannerText), "TREAT: CANDY CORN!");
+                } else if (roll < 75) {
+                    ichorWallet += 5;
+                    snprintf(bannerText, sizeof(bannerText), "TREAT: +5 ICHOR!");
+                } else if (roll < 90) {
+                    lives = min(3, lives + 1);
+                    snprintf(bannerText, sizeof(bannerText), "TREAT: CHOCOLATE (+1 HEART)!");
+                } else {
+                    alertTwistedsNoise(gx, gy);
+                    snprintf(bannerText, sizeof(bannerText), "TRICK: TWISTEDS SPOOKED!");
+                }
+                bannerUntil = millis() + 1800;
+                drawTrickBucket(tft, i);
+                drawHUD(tft);
+            }
+        }
+
+        // 6. Ichor Pickup Collisions
+        for (int i = 0; i < ichorTotal; i++) {
+            if (ichorList[i].active && hypotf(gx - ichorList[i].x, gy - ichorList[i].y) < 14.0f) {
+                ichorList[i].active = false;
+                ichorWallet += 1;
+                score += 25;
+                drawHUD(tft);
+            }
+        }
+
+        // 7. Twisteds AI Update Loop
         for (int i = 0; i < activeTwisteds; i++) {
             TwistedEnemy& tw = twisteds[i];
-            float tdx = gx - tw.x;
-            float tdy = gy - tw.y;
-            float tDist = sqrtf(tdx * tdx + tdy * tdy);
 
-            // Detection radius: 75px (Gourdy has low stealth!)
-            tw.chasing = (tDist < 75.0f);
-
-            if (tw.chasing) {
-                tw.x += (tdx / tDist) * tw.speed;
-                tw.y += (tdy / tDist) * tw.speed;
-            } else {
-                // Gentle patrol drift
-                float pdx = tw.patrolX - tw.x;
-                float pdy = tw.patrolY - tw.y;
-                float pDist = sqrtf(pdx * pdx + pdy * pdy);
-                if (pDist < 4.0f) {
-                    tw.patrolX = random(ARENA_LEFT + 20, ARENA_RIGHT - 20);
-                    tw.patrolY = random(ARENA_TOP + 30, ARENA_BOTTOM - 30);
-                } else {
-                    tw.x += (pdx / pDist) * (tw.speed * 0.5f);
-                    tw.y += (pdy / pDist) * (tw.speed * 0.5f);
+            if (tw.aiState == AI_STUNNED) {
+                if (millis() > tw.stunUntil) {
+                    tw.aiState = AI_PATROL;
+                    tw.stateTimer = millis() + random(3000, 5000);
                 }
-            }
+            } else {
+                float tdx = gx - tw.x;
+                float tdy = gy - tw.y;
+                float tDist = sqrtf(tdx * tdx + tdy * tdy);
 
-            // Twisted Collision with Gourdy
-            if (tDist < 16.0f && millis() > invulnerableUntil) {
-                lives--;
-                invulnerableUntil = millis() + 1800; // 1.8s invulnerability
-                drawHUD(tft);
+                // Detection Radius: Gourdy has low stealth (larger alert radius when moving)
+                float detectRange = isMoving ? 95.0f : 65.0f;
+                if (tw.type == TWISTED_DANDY) detectRange += 20.0f;
 
-                if (lives <= 0) {
-                    state = STATE_GAME_OVER;
-                    if (score > highScore) highScore = score;
+                if (tDist < detectRange) {
+                    tw.aiState = AI_CHASE;
+                    tw.targetX = gx;
+                    tw.targetY = gy;
+                } else if (tw.aiState == AI_CHASE && tDist > detectRange + 45.0f) {
+                    tw.aiState = AI_INVESTIGATE;
+                    tw.stateTimer = millis() + 3000;
+                }
 
-                    UI_AA::fillRoundRect(tft, 25, 140, 190, 68, 6, 0x8000, 0x0842);
-                    UI_AA::drawRoundRect(tft, 25, 140, 190, 68, 6, TFT_RED, 0x0842);
-                    tft.setTextDatum(MC_DATUM);
-                    tft.setTextColor(TFT_RED, 0x8000);
-                    tft.drawString("TWISTED CAUGHT YOU!", 120, 160, 2);
-                    tft.setTextColor(TFT_WHITE, 0x8000);
-                    tft.drawString("Tap to try again", 120, 185, 2);
-                    return;
+                if (tw.aiState == AI_INVESTIGATE && millis() > tw.stateTimer) {
+                    tw.aiState = AI_PATROL;
+                    tw.stateTimer = millis() + random(3000, 5000);
+                }
+
+                // Move Twisted towards target
+                float mdx = tw.targetX - tw.x;
+                float mdy = tw.targetY - tw.y;
+                float mDist = sqrtf(mdx * mdx + mdy * mdy);
+
+                if (tw.aiState == AI_PATROL && (mDist < 8.0f || millis() > tw.stateTimer)) {
+                    tw.targetX = random(ARENA_LEFT + 20, ARENA_RIGHT - 20);
+                    tw.targetY = random(ARENA_TOP + 30, ARENA_BOTTOM - 30);
+                    tw.stateTimer = millis() + random(3000, 6000);
+                }
+
+                if (mDist > 2.0f) {
+                    float step = (tw.aiState == AI_CHASE) ? (tw.speed * 1.25f) : (tw.speed * 0.75f);
+                    tw.x += (mdx / mDist) * step;
+                    tw.y += (mdy / mDist) * step;
+                }
+
+                // Twisted Touch Collision with Gourdy
+                if (tDist < 16.0f && millis() > invulnerableUntil) {
+                    lives--;
+                    invulnerableUntil = millis() + 1800;
+                    snprintf(bannerText, sizeof(bannerText), "TWISTED STRUCK GOURDY!");
+                    bannerUntil = millis() + 1500;
+                    drawHUD(tft);
+
+                    if (lives <= 0) {
+                        state = STATE_GAME_OVER;
+                        if (score > highScore) highScore = score;
+
+                        UI_AA::fillRoundRect(tft, 25, 130, 190, 78, 6, 0x8000, 0x0842);
+                        UI_AA::drawRoundRect(tft, 25, 130, 190, 78, 6, TFT_RED, 0x0842);
+                        tft.setTextDatum(MC_DATUM);
+                        tft.setTextColor(TFT_RED, 0x8000);
+                        tft.drawString("TWISTED CAUGHT YOU!", 120, 150, 2);
+                        tft.setTextColor(TFT_WHITE, 0x8000);
+                        char goBuf[32];
+                        snprintf(goBuf, sizeof(goBuf), "Floor Reached: %d", floorLevel);
+                        tft.drawString(goBuf, 120, 172, 1);
+                        tft.drawString("Tap screen to try again", 120, 192, 1);
+                        return;
+                    }
                 }
             }
         }
@@ -657,7 +1076,12 @@ public:
 
         // Erase previous Twisteds
         for (int i = 0; i < activeTwisteds; i++) {
-            tft.fillRect((int)twisteds[i].prevX - 12, (int)twisteds[i].prevY - 20, 25, 36, 0x0842);
+            tft.fillRect((int)twisteds[i].prevX - 14, (int)twisteds[i].prevY - 20, 29, 36, 0x0842);
+        }
+
+        // Redraw Machines
+        for (int i = 0; i < NUM_MACHINES; i++) {
+            drawMachine(tft, i);
         }
 
         // Draw Ichor drops
@@ -667,14 +1091,9 @@ public:
             }
         }
 
-        // Draw Candy
-        if (candy.active) {
-            drawCandy(tft, (int)candy.x, (int)candy.y);
-        }
-
         // Draw Twisteds
         for (int i = 0; i < activeTwisteds; i++) {
-            drawTwisted(tft, (int)twisteds[i].x, (int)twisteds[i].y, twisteds[i].chasing);
+            drawTwisted(tft, twisteds[i]);
             twisteds[i].prevX = twisteds[i].x;
             twisteds[i].prevY = twisteds[i].y;
         }
@@ -684,6 +1103,9 @@ public:
         drawGourdy(tft, (int)gx, (int)gy, facingAngle, isMoving, hasRush, blink);
         prevGx = gx;
         prevGy = gy;
+
+        // Draw Banner if active
+        drawBanner(tft);
     }
 
     void onExit(TFT_eSPI& tft) {}

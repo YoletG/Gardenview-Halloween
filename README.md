@@ -26,11 +26,13 @@
 ### 2. 🕹️ Games Arcade (`AppArcade`)
 A retro touch arcade launcher featuring two complete games with sub-navigation and smooth anti-aliased cards:
 - **🎃 Gardenview Halloween (`AppGourdy`):**
-  - **Dandy's World Survival:** Play as Gourdy Holloway, the anthropomorphic pumpkin extractor from *Dandy's World*. Features custom multi-lobe pumpkin rendering, moving white pupils that track threats, green stem/leaf, and fanged grin.
-  - **Ichor Extraction & Elevators:** Collect glowing purple Ichor drops scattered across Gardenview rooms, activate the central computer extraction terminal (`0% → 100%`), and unlock the elevator door to advance floors.
-  - **Twisted Monsters (Aggro AI):** Inky shadow enemies with dripping tendrils and piercing red eyes patrol the arena. Twisteds detect Gourdy and enter high-speed chase mode with alert markers (`!`). Kite them around stone pillars!
-  - **Sugar Rush Boost:** Pick up wrapped candies across the map and tap the on-screen `RUSH!` button for an immediate +50% speed boost.
-  - **Stamina Management:** Dynamic stamina gauge governs sprinting and evasive maneuvers.
+  - **Dandy's World Survival:** Play as Gourdy Holloway, the agile pumpkin extractor from *Dandy's World*. Features custom multi-lobe pumpkin rendering, moving white pupils that track threats, green stem/leaf, forehead seam, and fanged grin.
+  - **Authentic Extraction Machines & Skill Checks:** Multiple generators per floor requiring proximity extraction. Features a dynamic circular **Skill Check QTE** with rotating needle, green Hit Zone, and Great Zone. Successful taps grant instant progress boosts; failed skill checks trigger spark alarms that immediately alert nearby Twisteds!
+  - **Corrupted Twisteds AI:** Battle Twisted Dandy (with corrupted pumpkin petals), Twisted Poppy (fast ink bubbler), and Twisted Boxten. Features distinct AI states: `PATROL`, `INVESTIGATE` (noise-seeking with `?` indicator), `CHASE` (high-speed pursuit with `!` alert and glowing red eyes), and `STUNNED` (`***`).
+  - **Halloween Trick-or-Treat Buckets:** Scattered pumpkin candy buckets across rooms. Open for random rewards: 🍬 Candy Corn (Sugar Rush speed boost), 🍫 Chocolate (+1 Heart heal), 💜 +5 Ichor, or a spooky Trick that alerts Twisteds!
+  - **Flashlight Stun (Active Skill):** Tap the on-screen `STUN` button to flash a bright beam and freeze pursuing Twisteds for 2.5 seconds.
+  - **Dandy's Elevator Shop:** Between floors, enter the elevator to visit Dandy's Halloween Shop! Spend your collected research Ichor (💜) on chocolate bars, candy corn, and flashlight batteries before taking the elevator down to deeper, more dangerous floors.
+  - **Spooky Blackout Events:** Random blackout events submerge Gardenview in total darkness, with Gourdy's pumpkin lantern illuminating a warm radial glow while Twisteds' eyes pierce the dark.
 - **🧱 Breakout Arcade (`AppGame`):**
   - **60 FPS Differential Rendering:** Only paddle and ball bounding boxes are redrawn each frame, eliminating LCD tearing.
   - **Touch-Guided Paddle:** Low-pass filter tracking for responsive finger or stylus paddle control.
@@ -60,14 +62,15 @@ A retro touch arcade launcher featuring two complete games with sub-navigation a
 | <img src="./image/screen_launcher.png" width="230"/> | <img src="./image/screen_drawpad.png" width="230"/> | <img src="./image/screen_colorpicker.png" width="230"/> |
 | *Card launcher with theme badges* | *Solid brush with persistent PSRAM canvas* | *HSV hue slider & Sat/Val square* |
 
-| 4. Games Arcade Menu | 5. Gardenview Halloween (Dandy's World) | 6. Breakout Arcade Game |
+| 4. Games Arcade Menu | 5. Gardenview Halloween (Survival) | 6. Dandy's Elevator Shop |
 |:---:|:---:|:---:|
-| <img src="./image/screen_arcade.png" width="230"/> | <img src="./image/screen_gourdy.png" width="230"/> | <img src="./image/screen_breakout.png" width="230"/> |
-| *Arcade subgame selector hub* | *Ichor collection, machine extraction & Twisteds* | *60 FPS touch paddle & brick physics* |
+| <img src="./image/screen_arcade.png" width="230"/> | <img src="./image/screen_gourdy.png" width="230"/> | <img src="./image/screen_dandyshop.png" width="230"/> |
+| *Arcade subgame selector hub* | *Skill checks, 2 generators & Twisteds* | *Spend Ichor on items between floors* |
 
-| 7. System Monitor (SoC) | 8. Power & Sensors |
-|:---:|:---:|
-| <img src="./image/screen_sysmonitor.png" width="230"/> | <img src="./image/screen_sensors.png" width="230"/> |
+| 7. Breakout Arcade Game | 8. System Monitor (SoC) | 9. Sensors & Calibration |
+|:---:|:---:|:---:|
+| <img src="./image/screen_breakout.png" width="230"/> | <img src="./image/screen_sysmonitor.png" width="230"/> | <img src="./image/screen_sensors.png" width="230"/> |
+| *60 FPS touch paddle & brick physics* | *Dual-core stats, temp & memory bars* | *Magnetic reed switch & touch calibration* |
 | *Dual-core stats, temp & memory bars* | *Magnetic reed switch & touch calibration* |
 
 ---

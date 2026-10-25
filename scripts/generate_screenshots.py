@@ -326,125 +326,188 @@ def render_gourdy():
     draw.text((S(8), S(32)), "< ARC", fill=C_CYAN, font=font_xs)
     
     # Floor badge
-    draw.text((S(52), S(31)), "F:1", fill=C_WHITE, font=font_bold)
+    draw.text((S(52), S(31)), "F:1", fill=C_YELLOW, font=font_bold)
+    
+    # Ichor wallet
+    draw.text((S(76), S(31)), "ICHOR:14", fill=C_ICHOR, font=font_bold)
     
     # Score
-    draw.text((S(80), S(31)), "00450", fill=C_YELLOW, font=font_bold)
+    draw.text((S(132), S(31)), "00650", fill=C_CYAN, font=font_xs)
     
-    # Lives (hearts)
+    # Lives (Jack-o'-lantern hearts)
     for i in range(3):
-        hx = S(135 + i * 14)
-        draw.ellipse([hx, S(33), hx + S(9), S(42)], fill=C_RED, outline=C_WHITE, width=1)
+        hx = S(184 + i * 14)
+        draw.ellipse([hx, S(33), hx + S(9), S(42)], fill=C_ORANGE, outline=C_YELLOW, width=1)
+        draw.point((hx + S(4), S(31)), fill=(34, 197, 94))
         
-    # Sugar Rush / Candy button
-    draw.rounded_rectangle([S(182), S(28), S(236), S(48)], radius=S(4), fill=C_ORANGE, outline=C_WHITE, width=1)
-    draw.text((S(186), S(32)), "RUSH(1)", fill=(0, 0, 0), font=font_xs)
-    
     # Arena Border
-    draw.rectangle([S(4), S(52), S(236), S(296)], outline=(35, 45, 65), width=1)
+    draw.rectangle([S(4), S(52), S(236), S(282)], outline=(35, 45, 65), width=1)
     
     # Elevator Door (Top Center)
     elev_x = S(120)
     elev_y = S(56)
-    elev_w = S(44)
+    elev_w = S(46)
     elev_h = S(14)
     draw.rounded_rectangle([elev_x - elev_w//2, elev_y, elev_x + elev_w//2, elev_y + elev_h], radius=S(3), fill=(40, 45, 55), outline=C_YELLOW, width=1)
-    draw.text((elev_x - S(18), elev_y + S(2)), "ELEVATOR", fill=C_YELLOW, font=font_xs)
+    draw.text((elev_x - S(19), elev_y + S(2)), "ELEVATOR", fill=C_YELLOW, font=font_xs)
+    
+    # Event Banner
+    draw.rounded_rectangle([S(38), S(73), S(202), S(93)], radius=S(4), fill=(42, 21, 10), outline=C_YELLOW, width=1)
+    draw.text((S(44), S(77)), "SKILL CHECK: GREAT HIT!", fill=C_WHITE, font=font_sm)
     
     # Pillars / Obstacles (Gardenview Room architecture)
     obstacles = [
-        (S(38), S(110), S(24), S(24)),
-        (S(178), S(110), S(24), S(24)),
-        (S(54), S(200), S(28), S(20)),
-        (S(158), S(200), S(28), S(20))
+        (S(34), S(105), S(24), S(24)),
+        (S(182), S(105), S(24), S(24)),
+        (S(48), S(195), S(28), S(20)),
+        (S(164), S(195), S(28), S(20))
     ]
     for ox, oy, ow, oh in obstacles:
         draw.rounded_rectangle([ox, oy, ox + ow, oy + oh], radius=S(4), fill=(30, 36, 48), outline=(60, 75, 100), width=SCALE)
         draw.rectangle([ox + S(4), oy + S(4), ox + ow - S(4), oy + oh - S(4)], fill=(20, 24, 32))
         
-    # Extraction Machine (Gardenview Computer Terminal)
-    mx = S(120)
-    my = S(135)
-    mw = S(36)
-    mh = S(28)
-    draw.rounded_rectangle([mx - mw//2, my - mh//2, mx + mw//2, my + mh//2], radius=S(4), fill=(24, 30, 42), outline=(70, 85, 110), width=SCALE)
-    # Monitor Screen
-    draw.rectangle([mx - S(14), my - S(10), mx + S(14), my + S(2)], fill=(10, 25, 20), outline=C_GREEN, width=1)
-    draw.text((mx - S(12), my - S(8)), "GEN: 75%", fill=C_GREEN, font=font_xs)
-    # Interactive Generator Progress Bar
-    draw.rectangle([mx - S(14), my + S(5), mx + S(14), my + S(9)], fill=(15, 20, 25), outline=(50, 60, 75), width=1)
-    draw.rectangle([mx - S(13), my + S(6), mx + S(7), my + S(8)], fill=C_GREEN)
+    # Halloween Trick-or-Treat Buckets
+    # Bucket 1: Unopened (top-left)
+    b1x, b1y = S(18), S(75)
+    draw.ellipse([b1x - S(8), b1y - S(8), b1x + S(8), b1y + S(8)], fill=C_ORANGE, outline=C_YELLOW, width=1)
+    draw.arc([b1x - S(7), b1y - S(11), b1x + S(7), b1y - S(3)], 0, 180, fill=C_BLACK, width=1)
+    draw.text((b1x - S(10), b1y + S(9)), "TREAT", fill=C_YELLOW, font=font_xs)
+    
+    # Bucket 2: Empty (bottom-right)
+    b2x, b2y = S(212), S(230)
+    draw.ellipse([b2x - S(7), b2y - S(7), b2x + S(7), b2y + S(7)], outline=(99, 50, 44), width=1)
+    draw.text((b2x - S(10), b2y + S(9)), "EMPTY", fill=(99, 50, 44), font=font_xs)
+    
+    # Machine 1 (Left Generator): Extracting with Skill Check Dial
+    m1x, m1y = S(75), S(145)
+    draw.rounded_rectangle([m1x - S(16), m1y - S(14), m1x + S(16), m1y + S(14)], radius=S(4), fill=(24, 30, 42), outline=C_CYAN, width=SCALE)
+    draw.rectangle([m1x - S(12), m1y - S(10), m1x + S(12), m1y + S(3)], fill=(5, 20, 35))
+    draw.text((m1x - S(10), m1y - S(8)), "M1: 85%", fill=C_CYAN, font=font_xs)
+    draw.ellipse([m1x - S(3), m1y + S(7), m1x + S(3), m1y + S(13)], fill=C_YELLOW)
+    
+    # Circular Skill Check QTE Dial over Machine 1
+    sc_r = S(20)
+    draw.ellipse([m1x - sc_r, m1y - sc_r, m1x + sc_r, m1y + sc_r], outline=C_WHITE, width=SCALE)
+    # Hit Zone (Green Arc)
+    draw.arc([m1x - sc_r, m1y - sc_r, m1x + sc_r, m1y + sc_r], 40, 95, fill=C_GREEN, width=S(3))
+    # Needle
+    draw.line([(m1x, m1y), (m1x + S(14), m1y + S(14))], fill=C_YELLOW, width=SCALE)
+    draw.text((m1x - S(10), m1y - S(25)), "TAP!", fill=C_YELLOW, font=font_xs)
+    
+    # Machine 2 (Right Generator): 100% Completed!
+    m2x, m2y = S(165), S(145)
+    draw.rounded_rectangle([m2x - S(16), m2y - S(14), m2x + S(16), m2y + S(14)], radius=S(4), fill=(24, 30, 42), outline=C_GREEN, width=SCALE)
+    draw.rectangle([m2x - S(12), m2y - S(10), m2x + S(12), m2y + S(3)], fill=(5, 35, 15))
+    draw.text((m2x - S(10), m2y - S(8)), "M2: 100%", fill=C_GREEN, font=font_xs)
+    draw.ellipse([m2x - S(3), m2y + S(7), m2x + S(3), m2y + S(13)], fill=C_GREEN)
     
     # Ichor Drops (Glowing Purple Inky essence)
-    ichor_pts = [(S(35), S(170)), (S(205), S(170)), (S(120), S(185))]
+    ichor_pts = [(S(32), S(160)), (S(208), S(160)), (S(120), S(180))]
     for ix, iy in ichor_pts:
-        # Outer glow
-        draw.ellipse([ix - S(9), iy - S(9), ix + S(9), iy + S(9)], fill=(60, 15, 75))
-        # Drop body
+        draw.ellipse([ix - S(8), iy - S(8), ix + S(8), iy + S(8)], fill=(60, 15, 75))
         draw.ellipse([ix - S(5), iy - S(5), ix + S(5), iy + S(5)], fill=C_ICHOR)
-        # Core highlight
         draw.ellipse([ix - S(2), iy - S(3), ix + S(2), iy + S(1)], fill=C_WHITE)
         
-    # Collectible Candy Item
-    cx, cy = S(85), S(160)
-    draw.ellipse([cx - S(6), cy - S(6), cx + S(6), cy + S(6)], fill=(236, 72, 153), outline=C_WHITE, width=1)
-    draw.line([(cx - S(4), cy), (cx + S(4), cy)], fill=C_WHITE, width=1)
-    draw.polygon([(cx - S(9), cy - S(4)), (cx - S(5), cy), (cx - S(9), cy + S(4))], fill=(236, 72, 153))
-    draw.polygon([(cx + S(9), cy - S(4)), (cx + S(5), cy), (cx + S(9), cy + S(4))], fill=(236, 72, 153))
-    
-    # Twisted Monster (Inky Shadow Enemy Hunting Gourdy)
-    tx, ty = S(175), S(150)
-    # Aggro alert mark "!"
-    draw.text((tx - S(3), ty - S(26)), "!", fill=C_RED, font=font_bold)
-    # Dripping inky tendrils
-    tendril_pts = [
-        (tx - S(12), ty + S(12)), (tx - S(6), ty + S(16)),
-        (tx, ty + S(14)), (tx + S(6), ty + S(17)), (tx + S(12), ty + S(11))
-    ]
-    for px, py in tendril_pts:
-        draw.line([(tx, ty), (px, py)], fill=(12, 12, 16), width=S(3))
-    # Inky Head/Body
-    draw.ellipse([tx - S(14), ty - S(14), tx + S(14), ty + S(14)], fill=(15, 15, 20), outline=(50, 10, 20), width=1)
-    # Piercing Red Eyes
-    draw.ellipse([tx - S(8), ty - S(4), tx - S(2), ty + S(2)], fill=C_RED)
-    draw.ellipse([tx + S(2), ty - S(4), tx + S(8), ty + S(2)], fill=C_RED)
-    draw.point((tx - S(5), ty - S(1)), fill=C_WHITE)
-    draw.point((tx + S(5), ty - S(1)), fill=C_WHITE)
+    # Twisted Dandy (Inky Monster with Corrupted Pumpkin Petals)
+    tx, ty = S(216), S(82)
+    draw.text((tx - S(3), ty - S(24)), "!", fill=C_RED, font=font_bold)
+    # Petals
+    for p in range(6):
+        rad = p * 1.047
+        px = tx + int(math.cos(rad) * S(12))
+        py = ty + int(math.sin(rad) * S(12))
+        draw.ellipse([px - S(4), py - S(4), px + S(4), py + S(4)], fill=C_ORANGE)
+    # Head & Red Eyes
+    draw.ellipse([tx - S(10), ty - S(10), tx + S(10), ty + S(10)], fill=(15, 15, 20), outline=C_BLACK, width=1)
+    draw.ellipse([tx - S(6), ty - S(3), tx - S(1), ty + S(2)], fill=C_RED)
+    draw.ellipse([tx + S(1), ty - S(3), tx + S(6), ty + S(2)], fill=C_RED)
     
     # Gourdy Holloway (Player)
-    gx, gy = S(120), S(245)
+    gx, gy = S(85), S(185)
     # Vine limbs
     draw.line([(gx - S(8), gy + S(6)), (gx - S(12), gy + S(16))], fill=(105, 154, 33), width=SCALE)
     draw.line([(gx + S(8), gy + S(6)), (gx + S(12), gy + S(16))], fill=(105, 154, 33), width=SCALE)
-    # Multi-lobed Pumpkin Body (Smooth & Anti-aliased)
+    # Multi-lobed Pumpkin Body
     draw.ellipse([gx - S(13), gy - S(10), gx, gy + S(10)], fill=(249, 115, 22))
     draw.ellipse([gx, gy - S(10), gx + S(13), gy + S(10)], fill=(249, 115, 22))
     draw.ellipse([gx - S(8), gy - S(11), gx + S(8), gy + S(11)], fill=(251, 146, 60))
-    # Stem & Curled Leaf
+    # Stem & Leaf
     draw.rectangle([gx - S(2), gy - S(17), gx + S(2), gy - S(11)], fill=(105, 154, 33))
     draw.ellipse([gx + S(2), gy - S(17), gx + S(9), gy - S(13)], fill=(34, 197, 94))
-    # Seam stitch on forehead
-    draw.line([(gx - S(4), gy - S(6)), (gx + S(4), gy - S(6))], fill=(180, 80, 10), width=1)
-    # Carved Hollow Eyes with Pupils looking towards threat
+    # Eyes & Smile
     draw.rectangle([gx - S(6), gy - S(3), gx - S(1), gy + S(2)], fill=(15, 15, 15))
     draw.rectangle([gx + S(2), gy - S(3), gx + S(7), gy + S(2)], fill=(15, 15, 15))
     draw.point((gx - S(3), gy - S(1)), fill=C_WHITE)
     draw.point((gx + S(5), gy - S(1)), fill=C_WHITE)
-    # Fanged Grin
     draw.line([(gx - S(6), gy + S(5)), (gx + S(6), gy + S(5))], fill=(15, 15, 15), width=SCALE)
-    draw.point((gx - S(3), gy + S(5)), fill=C_WHITE)
-    draw.point((gx + S(3), gy + S(5)), fill=C_WHITE)
     
-    # Touch Joystick indicator / Target Reticle
-    draw.ellipse([gx - S(20), gy - S(20), gx + S(20), gy + S(20)], outline=(80, 120, 160), width=1)
+    # Bottom Controls Toolbar (y: 284..320)
+    draw.rectangle([0, S(284), W, H], fill=C_TOOLBAR)
+    draw.line([0, S(284), W, S(284)], fill=(45, 55, 75), width=1)
     
-    # Bottom Bar: Stamina Gauge
-    draw.rectangle([0, S(298), W, H], fill=C_TOOLBAR)
-    draw.line([0, S(298), W, S(298)], fill=(45, 55, 75), width=1)
-    draw.text((S(10), S(303)), "STAMINA", fill=C_GRAY_TEXT, font=font_xs)
-    # Bar
-    draw.rounded_rectangle([S(60), S(304), S(230), S(314)], radius=S(3), fill=(20, 25, 35), outline=(50, 65, 85), width=1)
-    draw.rounded_rectangle([S(61), S(305), S(200), S(313)], radius=S(2), fill=C_GREEN)
+    # 1. Flashlight Stun Button (Left)
+    draw.ellipse([S(10), S(286), S(42), S(318)], fill=C_YELLOW, outline=C_WHITE, width=1)
+    draw.text((S(14), S(298)), "STUN(2)", fill=(0, 0, 0), font=font_xs)
+    
+    # 2. Stamina Meter (Center)
+    draw.text((S(100), S(288)), "STAMINA", fill=C_GRAY_TEXT, font=font_xs)
+    draw.rectangle([S(58), S(301), S(182), S(309)], outline=C_WHITE, fill=(10, 15, 20), width=1)
+    draw.rectangle([S(59), S(302), S(160), S(308)], fill=C_GREEN)
+    
+    # 3. Sugar Rush Candy Button (Right)
+    draw.ellipse([S(198), S(286), S(230), S(318)], fill=C_ORANGE, outline=C_WHITE, width=1)
+    draw.text((S(201), S(298)), "RUSH(1)", fill=C_WHITE, font=font_xs)
+    return img
+
+# ==============================================================================
+# 5b. DANDY'S HALLOWEEN ELEVATOR SHOP
+# ==============================================================================
+def render_dandy_shop():
+    img = Image.new("RGB", (W, H), (12, 16, 25))
+    draw = ImageDraw.Draw(img)
+    draw_status_bar(draw, "Dandy's Shop", is_home=False)
+    
+    # Header bar
+    draw.rectangle([0, S(26), W, S(50)], fill=(16, 20, 34))
+    draw.line([0, S(50), W, S(50)], fill=(45, 55, 75), width=1)
+    draw.text((S(45), S(31)), "DANDY'S ELEVATOR SHOP", fill=C_YELLOW, font=font_bold)
+    
+    # Dandy Character with Halloween Witch Hat
+    dx, dy = S(120), S(85)
+    for i in range(6):
+        a = i * 1.047
+        px = dx + int(math.cos(a) * S(16))
+        py = dy + int(math.sin(a) * S(16))
+        draw.ellipse([px - S(8), py - S(8), px + S(8), py + S(8)], fill=C_YELLOW)
+    draw.ellipse([dx - S(12), dy - S(12), dx + S(12), dy + S(12)], fill=C_WHITE)
+    draw.point((dx - S(4), dy - S(2)), fill=C_BLACK)
+    draw.point((dx + S(4), dy - S(2)), fill=C_BLACK)
+    draw.line([(dx - S(5), dy + S(4)), (dx + S(5), dy + S(4))], fill=C_BLACK, width=1)
+    
+    # Witch / Top Hat
+    draw.rectangle([dx - S(14), dy - S(18), dx + S(14), dy - S(14)], fill=(45, 20, 60))
+    draw.rectangle([dx - S(8), dy - S(28), dx + S(8), dy - S(18)], fill=(45, 20, 60))
+    draw.line([(dx - S(8), dy - S(19)), (dx + S(8), dy - S(19))], fill=C_ORANGE, width=1)
+    
+    # Speech Bubble
+    draw.text((S(52), S(116)), "\"Happy Halloween, Gourdy!\"", fill=C_WHITE, font=font_sm)
+    draw.text((S(76), S(132)), "Your Ichor: 14", fill=C_ICHOR, font=font_bold)
+    
+    # Shop Items
+    items = [
+        ("1. CHOCOLATE BAR (+1 Heart)", "Cost: 8 Ichor [BUY]", C_GREEN),
+        ("2. CANDY CORN (+1 Speed Boost)", "Cost: 5 Ichor [BUY]", C_ORANGE),
+        ("3. FLASHLIGHT BATTERY (+2 Stun)", "Cost: 6 Ichor [BUY]", C_YELLOW)
+    ]
+    for i, (title, cost, outline_col) in enumerate(items):
+        iy = S(150 + i * 40)
+        draw.rounded_rectangle([S(14), iy, S(226), iy + S(34)], radius=S(4), fill=C_CARD_BG, outline=outline_col, width=1)
+        draw.text((S(22), iy + S(4)), title, fill=C_WHITE, font=font_sm)
+        draw.text((S(22), iy + S(18)), cost, fill=C_ICHOR, font=font_xs)
+        
+    # Continue Button
+    draw.rounded_rectangle([S(25), S(274), S(215), S(310)], radius=S(6), fill=C_CYAN, outline=C_WHITE, width=1)
+    draw.text((S(60), S(285)), "ENTER FLOOR 2 >", fill=(0, 0, 0), font=font_large)
     return img
 
 # ==============================================================================
@@ -654,6 +717,10 @@ if __name__ == "__main__":
     sc_gourdy.save(f"{out_dir}/screen_gourdy.png")
     print("Saved screen_gourdy.png")
     
+    sc_dandyshop = render_dandy_shop()
+    sc_dandyshop.save(f"{out_dir}/screen_dandyshop.png")
+    print("Saved screen_dandyshop.png")
+    
     sc_breakout = render_breakout()
     sc_breakout.save(f"{out_dir}/screen_breakout.png")
     print("Saved screen_breakout.png")
@@ -666,14 +733,15 @@ if __name__ == "__main__":
     sc_sensors.save(f"{out_dir}/screen_sensors.png")
     print("Saved screen_sensors.png")
     
-    screens_for_showcase = [sc_launcher, sc_drawpad, sc_arcade, sc_gourdy, sc_breakout, sc_sysmonitor]
+    screens_for_showcase = [sc_launcher, sc_drawpad, sc_arcade, sc_gourdy, sc_dandyshop, sc_breakout, sc_sysmonitor]
     labels_for_showcase = [
         "1. App Launcher",
         "2. Drawing Pad (Solid)",
         "3. Games Arcade (Hub)",
         "4. Gardenview Halloween",
-        "5. Breakout Arcade",
-        "6. System Health & Sensors"
+        "5. Dandy's Elevator Shop",
+        "6. Breakout Arcade",
+        "7. System Health & Sensors"
     ]
     showcase = render_showcase(screens_for_showcase, labels_for_showcase)
     showcase.save(f"{out_dir}/showcase.png")
